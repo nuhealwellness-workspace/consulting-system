@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <title>NuHeal 佳凱樂 - 營養師工作站</title>
@@ -8,54 +8,54 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <script>
-    // 🌟 1. API 通訊層 Proxy (攔截所有 google.script.run 並轉為 fetch 送給 GAS)
-    // ⚠️ 請務必將此處替換為您的 GAS 部署網址 (需部署為：身分選「自己」，權限選「所有人」)
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzElgMaDgwgMosYDin90psBVkQyb6N_tGeJWUkxA2F4QN44H2rXDVk3n0CwZ57u-4Lj/exec';
+    // 🌟 1. 完美無遞迴版 Proxy (徹底解決 Stack Overflow 問題)
+    // ⚠️ 請將此處替換為您的 GAS 最新網頁應用程式網址
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbymW2eEJJpgxTQbgfEQLKtnNfPKQFegWdUn35AJKsCV23g4x0f_ffMQkHXm0KX_Bp4GyA/exec';
 
-    window.google = {
-      script: {
-        run: new Proxy({}, {
-          get: function(target, prop) {
-            if (prop === 'withSuccessHandler') {
-              return function(callback) { target._success = callback; return new Proxy(target, this); };
-            }
-            if (prop === 'withFailureHandler') {
-              return function(callback) { target._failure = callback; return new Proxy(target, this); };
-            }
-            return function(...args) {
-              fetch(GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ functionName: prop, args: args }),
-                redirect: 'follow'
-              })
-              .then(res => {
-                if (!res.ok) throw new Error("Network response was not ok.");
-                return res.json();
-              })
-              .then(data => {
-                if (target._success) target._success(data);
-              })
-              .catch(err => {
-                console.error(`[API Error] ${prop}:`, err);
-                if (target._failure) target._failure(err);
-              });
-            };
+    function createGasProxy(handlers = {}) {
+      return new Proxy({}, {
+        get: function(target, prop) {
+          if (prop === 'withSuccessHandler') {
+            return function(cb) { return createGasProxy({ success: cb, failure: handlers.failure }); };
           }
-        })
-      }
-    };
+          if (prop === 'withFailureHandler') {
+            return function(cb) { return createGasProxy({ success: handlers.success, failure: cb }); };
+          }
+          return function(...args) {
+            fetch(GAS_WEB_APP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ functionName: prop, args: args }),
+              redirect: 'follow'
+            })
+            .then(res => {
+              if (!res.ok) throw new Error("Network response was not ok.");
+              return res.json();
+            })
+            .then(data => {
+              if (handlers.success) handlers.success(data);
+            })
+            .catch(err => {
+              console.error(`[API Error] ${prop}:`, err);
+              if (handlers.failure) handlers.failure(err);
+            });
+          };
+        }
+      });
+    }
 
-    // 🌟 2. 佳凱樂全新主視覺色系配置 (對齊 Logo: 森綠色 #4A5F48 與 香檳金 #C7AF84)
+    window.google = { script: { run: createGasProxy() } };
+
+    // 🌟 2. 精準對齊 Logo 視覺色系 (森綠色 #4A5D45 與 香檳金 #C4B087)
     tailwind.config = {
       theme: { 
         extend: { 
           colors: { 
             brand: { 
-              beige: '#F4F1EA',    /* 淺香檳底色 */
-              oatmeal: '#E5E0D8',  /* 灰綠色邊框/點綴 */
-              milktea: '#C7AF84',  /* 香檳金 (Logo 文字/星芒) */
-              sage: '#4A5F48'      /* 森綠色 (Logo 背景色) */
+              beige: '#F5F2EB',    /* 淺香檳底色 */
+              oatmeal: '#E3DDD3',  /* 灰綠色邊框/點綴 */
+              milktea: '#C4B087',  /* 香檳金 (Logo 文字/星芒) */
+              sage: '#4A5D45'      /* 森綠色 (Logo 背景色) */
             } 
           } 
         } 
@@ -68,8 +68,8 @@
     
     .mobile-container { max-width: 480px; margin: 0 auto; background: transparent; min-height: 100vh; display: flex; flex-direction: column; }
     
-    .form-input { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #E5E0D8; border-radius: 0.75rem; outline: none; transition: all 0.2s; font-size: 15px; background-color: #FAFAF8; -webkit-appearance: none; }
-    .form-input:focus { border-color: #4A5F48; background-color: #fff; box-shadow: 0 0 0 3px rgba(74, 95, 72, 0.2); }
+    .form-input { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #E3DDD3; border-radius: 0.75rem; outline: none; transition: all 0.2s; font-size: 15px; background-color: #FAFAF8; -webkit-appearance: none; }
+    .form-input:focus { border-color: #4A5D45; background-color: #fff; box-shadow: 0 0 0 3px rgba(74, 93, 69, 0.2); }
     .form-input[readonly] { background-color: #F3F4F6; color: #6B7280; cursor: not-allowed; border-color: #E5E7EB; }
     textarea.form-input { resize: vertical; min-height: 90px; width: 100%; }
     textarea.input-lg { min-height: 140px; }
@@ -77,13 +77,13 @@
     
     .btn-primary { width: 100%; padding: 0.875rem; border-radius: 0.75rem; font-weight: bold; text-align: center; transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
     .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn-sage { background-color: #4A5F48; color: #C7AF84; border: 1px solid #C7AF84; }
-    .btn-sage:not(:disabled):hover { background-color: #3e503c; }
+    .btn-sage { background-color: #4A5D45; color: #C4B087; border: 1px solid #4A5D45; }
+    .btn-sage:not(:disabled):hover { background-color: #3e4e3a; }
     .btn-sage:not(:disabled):active { transform: scale(0.98); opacity: 0.9; }
-    .btn-outline { border: 1.5px solid #C7AF84; color: #4A5F48; background: white;}
+    .btn-outline { border: 1.5px solid #C4B087; color: #4A5D45; background: white;}
     
-    .slot-btn { width: 100%; padding: 0.875rem 0.5rem; border: 1.5px solid #E5E0D8; border-radius: 0.75rem; text-align: center; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; color: #4A4A4A; background-color: white; }
-    .slot-btn.active { border-color: #4A5F48; background-color: #4A5F48; color: #C7AF84; box-shadow: 0 4px 6px rgba(74, 95, 72, 0.3); }
+    .slot-btn { width: 100%; padding: 0.875rem 0.5rem; border: 1.5px solid #E3DDD3; border-radius: 0.75rem; text-align: center; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; color: #4A4A4A; background-color: white; }
+    .slot-btn.active { border-color: #4A5D45; background-color: #4A5D45; color: #C4B087; box-shadow: 0 4px 6px rgba(74, 93, 69, 0.3); }
     .slot-btn.booked { background-color: #F3F4F6; border-color: #E5E7EB; color: #9CA3AF; cursor: not-allowed; text-decoration: line-through; opacity: 0.7; }
     
     .hidden-sec { display: none !important; }
@@ -101,12 +101,12 @@
     .scrollable-col { overflow-y: auto; }
     .scrollable-col::-webkit-scrollbar, .hidden-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollable-col::-webkit-scrollbar-track, .hidden-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .scrollable-col::-webkit-scrollbar-thumb, .hidden-scrollbar::-webkit-scrollbar-thumb { background: #C7AF84; border-radius: 10px; }
+    .scrollable-col::-webkit-scrollbar-thumb, .hidden-scrollbar::-webkit-scrollbar-thumb { background: #C4B087; border-radius: 10px; }
 
     .tabs-desktop-wrapper { display: block; width: 100%; }
     .tab-nav { display: flex; background: #F3F4F6; padding: 4px; border-radius: 12px; margin-bottom: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
     .tab-btn { flex: 1; text-align: center; padding: 10px 0; font-weight: bold; font-size: 0.85rem; color: #9CA3AF; border-radius: 10px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
-    .tab-btn.active { background: white; color: #4A5F48; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .tab-btn.active { background: white; color: #4A5D45; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .tab-content { display: none !important; animation: fadeIn 0.3s ease; }
     .tab-content.active { display: flex !important; flex-direction: column; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -147,7 +147,7 @@
       <h1 class="text-3xl font-bold text-brand-milktea tracking-wider flex justify-center items-center gap-2" style="font-family: serif;">
         NuHeal
       </h1>
-      <p class="text-[10px] text-brand-milktea mt-1 tracking-[0.2em]">WELLNESS & HEALTHCARE</p>
+      <p class="text-[10px] text-brand-milktea mt-1 tracking-[0.2em] font-bold">WELLNESS & HEALTHCARE</p>
     </div>
 
     <div id="initWorkspace" class="flex flex-col lg:flex-row w-full gap-5 p-4 sm:p-6 lg:p-8 flex-none items-stretch">
@@ -872,10 +872,10 @@
       if (!data || data.length === 0) return;
 
       const metricConfig = {
-        height: { label: '身高 (cm)', color: '#DED4C1', bgColor: 'rgba(222, 212, 193, 0.2)' },
-        weight: { label: '體重 (kg)', color: '#4A5F48', bgColor: 'rgba(74, 95, 72, 0.2)' },
-        bmi: { label: 'BMI', color: '#C7AF84', bgColor: 'rgba(199, 175, 132, 0.2)' },
-        bodyFat: { label: '體脂率 (%)', color: '#C7AF84', bgColor: 'rgba(199, 175, 132, 0.2)' }
+        height: { label: '身高 (cm)', color: '#E3DDD3', bgColor: 'rgba(227, 221, 211, 0.2)' },
+        weight: { label: '體重 (kg)', color: '#4A5D45', bgColor: 'rgba(74, 93, 69, 0.2)' },
+        bmi: { label: 'BMI', color: '#C4B087', bgColor: 'rgba(196, 176, 135, 0.2)' },
+        bodyFat: { label: '體脂率 (%)', color: '#C4B087', bgColor: 'rgba(196, 176, 135, 0.2)' }
       };
 
       const config = metricConfig[currentChartMetric];
