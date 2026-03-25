@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NuHeal 佳凱樂 - 營養師工作站</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // 🌟 佳凱樂主視覺色系配置 (深橄欖綠與香檳金)
+    tailwind.config = {
+      theme: { 
+        extend: { 
+          colors: { 
+            brand: { 
+              beige: '#F3F0E9',   /* 淺香檳底色 */
+              oatmeal: '#D5CFC4', /* 灰綠色邊框/點綴 */
+              milktea: '#C6A87C', /* 香檳金 (Logo 文字/星芒) */
+              sage: '#1F382A'     /* 深橄欖綠 (Logo 背景色) */
+            } 
+          } 
+        } 
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background-color: #F3F4F6; font-family: 'Noto Sans TC', sans-serif; color: #4A4A4A; }
+    
+    .mobile-container { max-width: 480px; margin: 0 auto; background: transparent; min-height: 100vh; display: flex; flex-direction: column; }
+    
+    .form-input { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #D5CFC4; border-radius: 0.75rem; outline: none; transition: all 0.2s; font-size: 15px; background-color: #FAFAF8; -webkit-appearance: none; }
+    .form-input:focus { border-color: #1F382A; background-color: #fff; box-shadow: 0 0 0 3px rgba(31, 56, 42, 0.2); }
+    .form-input[readonly] { background-color: #F3F4F6; color: #6B7280; cursor: not-allowed; border-color: #E5E7EB; }
+    textarea.form-input { resize: vertical; min-height: 90px; width: 100%; }
+    textarea.input-lg { min-height: 140px; }
+    .form-label { display: block; margin-bottom: 0.4rem; font-weight: 600; color: #6B7280; font-size: 0.9rem; }
+    
+    .btn-primary { width: 100%; padding: 0.875rem; border-radius: 0.75rem; font-weight: bold; text-align: center; transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-sage { background-color: #1F382A; color: #C6A87C; border: 1px solid #C6A87C; }
+    .btn-sage:not(:disabled):active { transform: scale(0.98); opacity: 0.9; }
+    .btn-outline { border: 1.5px solid #C6A87C; color: #1F382A; background: white;}
+    
+    .slot-btn { width: 100%; padding: 0.875rem 0.5rem; border: 1.5px solid #D5CFC4; border-radius: 0.75rem; text-align: center; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; color: #4A4A4A; background-color: white; }
+    .slot-btn.active { border-color: #1F382A; background-color: #1F382A; color: #C6A87C; box-shadow: 0 4px 6px rgba(31, 56, 42, 0.3); }
+    .slot-btn.booked { background-color: #F3F4F6; border-color: #E5E7EB; color: #9CA3AF; cursor: not-allowed; text-decoration: line-through; opacity: 0.7; }
+    
+    .hidden-sec { display: none !important; }
+    #photoModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 50; justify-content: center; align-items: center; }
+    #photoModal img { max-width: 90%; max-height: 90%; border-radius: 12px; }
+    input[type=file] { display: none; }
+
+    .glass-overlay {
+      position: absolute; inset: 0; z-index: 10;
+      background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 1rem; border: 1px solid rgba(255,255,255,0.8);
+      transition: opacity 0.4s ease;
+    }
+    .scrollable-col { overflow-y: auto; }
+    .scrollable-col::-webkit-scrollbar, .hidden-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollable-col::-webkit-scrollbar-track, .hidden-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .scrollable-col::-webkit-scrollbar-thumb, .hidden-scrollbar::-webkit-scrollbar-thumb { background: #C6A87C; border-radius: 10px; }
+
+    .tabs-desktop-wrapper { display: block; width: 100%; }
+    .tab-nav { display: flex; background: #F3F4F6; padding: 4px; border-radius: 12px; margin-bottom: 16px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+    .tab-btn { flex: 1; text-align: center; padding: 10px 0; font-weight: bold; font-size: 0.85rem; color: #9CA3AF; border-radius: 10px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+    .tab-btn.active { background: white; color: #1F382A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .tab-content { display: none !important; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: flex !important; flex-direction: column; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (min-width: 1024px) {
+      .mobile-container { max-width: 1600px; padding: 0 1rem; }
+      .tab-nav { display: none !important; }
+      .tabs-desktop-wrapper { display: flex; flex-direction: row; gap: 1.5rem; align-items: stretch; width: 100%; }
+      .tab-content { display: flex !important; flex-direction: column; flex: 1; width: 33.33%; background: white; padding: 2rem !important; border-radius: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #E5E7EB; height: auto; animation: none; }
+      .tab-content form { display: flex; flex-direction: column; flex-grow: 1; }
+      #initWorkspace > div { height: 480px; }
+    }
+  </style>
+  
+  <script>
+    // ⚠️ 請務必將此處替換為您的 GAS 部署網址 (需部署為：身分選「自己」，權限選「所有人」)
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzElgMaDgwgMosYDin90psBVkQyb6N_tGeJWUkxA2F4QN44H2rXDVk3n0CwZ57u-4Lj/exec';
+
+    window.google = {
+      script: {
+        run: new Proxy({}, {
+          get: function(target, prop) {
+            if (prop === 'withSuccessHandler') {
+              return function(callback) { target._success = callback; return new Proxy(target, this); };
+            }
+            if (prop === 'withFailureHandler') {
+              return function(callback) { target._failure = callback; return new Proxy(target, this); };
+            }
+            return function(...args) {
+              fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                // 使用 text/plain 避免嚴格的 CORS 預檢 (Preflight) 阻擋，GAS 會將其內容視為字串處理
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ functionName: prop, args: args }),
+                redirect: 'follow'
+              })
+              .then(res => {
+                if (!res.ok) throw new Error("Network response was not ok.");
+                return res.json();
+              })
+              .then(data => {
+                // 成功取得後端回傳，觸發原本邏輯的 SuccessHandler
+                if (target._success) target._success(data);
+              })
+              .catch(err => {
+                // 網路錯誤或伺服器 500 錯誤，觸發 FailureHandler
+                console.error(`[API Error] ${prop}:`, err);
+                if (target._failure) target._failure(err);
+              });
+            };
+          }
+        })
+      }
+    };
+  </script>
+</head>
+<body>
+
+  <div id="photoModal" onclick="this.style.display='none'">
+    <img id="enlargedPhoto" src="" alt="客戶照片">
+  </div>
+
+  <div id="customOptionModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-40 backdrop-blur-sm z-50 flex justify-center items-center px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 transform transition-all">
+      <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="ph ph-plus-circle text-brand-sage text-xl"></i> 新增自訂選項
+      </h3>
+      <p class="text-xs text-gray-500 mb-4">請輸入您想要新增的項目名稱：</p>
+      <input type="text" id="newOptionInput" class="form-input mb-5" placeholder="請輸入內容...">
+      <div class="flex flex-col gap-3">
+        <button type="button" onclick="confirmAddOption()" class="btn-primary btn-sage">確認新增</button>
+        <button type="button" onclick="closeAddOptionModal()" class="btn-primary bg-gray-100 text-gray-600 hover:bg-gray-200 border-none">取消返回</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-container">
+    
+    <div class="bg-brand-sage pt-6 pb-4 px-6 text-center border-b border-brand-oatmeal border-opacity-50 sticky top-0 z-20 shadow-md">
+      <h1 class="text-2xl font-bold text-brand-milktea tracking-wider flex justify-center items-center gap-2">
+        NuHeal
+      </h1>
+      <p class="text-xs text-brand-beige font-medium mt-1 tracking-widest">WELLNESS & HEALTHCARE</p>
+    </div>
+
+    <div id="initWorkspace" class="flex flex-col lg:flex-row w-full gap-5 p-4 sm:p-6 lg:p-8 flex-none items-stretch">
+      
+      <div class="w-full lg:w-1/3 flex flex-col relative bg-white p-7 sm:p-8 rounded-2xl shadow-sm border border-brand-oatmeal scrollable-col shrink-0">
+        <h2 class="text-lg font-bold text-gray-700 text-center mb-6 flex items-center justify-center gap-2">
+          <i class="ph ph-shield-check text-2xl text-brand-sage"></i> 系統安全登入
+        </h2>
+        <div class="flex flex-col gap-5 flex-grow">
+          <div>
+            <label class="form-label text-sm"><i class="ph ph-envelope-simple align-middle"></i> 登入帳號 (Email)</label>
+            <input type="email" id="loginEmail" class="form-input" placeholder="請輸入註冊的 Email">
+          </div>
+          <div>
+            <label class="form-label text-sm"><i class="ph ph-lock-key align-middle"></i> 登入密碼</label>
+            <input type="password" id="loginPwd" class="form-input" placeholder="請輸入密碼">
+          </div>
+          <div id="loginErrorMsg" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg font-bold text-center"></div>
+          
+          <div class="flex flex-col gap-2 mt-auto pt-4"> 
+            <span id="currentUserDisplay" class="hidden text-sm text-brand-sage font-bold bg-brand-sage bg-opacity-10 p-3 rounded-lg text-center border border-brand-sage border-opacity-30"></span>
+            <button type="button" id="loginBtn" onclick="doLogin()" class="btn-primary btn-sage w-full">
+              <i class="ph ph-sign-in text-lg"></i> 登入 / 重新驗證
+            </button>
+            <button type="button" id="logoutBtn" onclick="doLogout()" class="hidden btn-primary bg-red-50 text-red-500 hover:bg-red-100 border-none transition mt-1 w-full">
+              <i class="ph ph-sign-out text-lg"></i> 登出系統
+            </button>
+          </div>
+
+          <div class="mt-2 text-center pt-4 border-t border-gray-100">
+            <span class="text-sm text-gray-400">尚未擁有帳號？ </span>
+            <a href="https://script.google.com/macros/s/AKfycbxqYidf6nef8h-W47ltxp3wcUmMhtaxJTSSRDsavd2v0pwvakr9TMnnY3S_1Owg15pONQ/exec" 
+               target="_blank" rel="noopener noreferrer"
+               class="text-sm font-bold text-brand-milktea hover:text-brand-sage transition-colors duration-200 inline-flex items-center gap-1">
+               前往註冊 <i class="ph ph-arrow-square-out"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full lg:w-1/3 flex flex-col relative bg-white p-7 sm:p-8 rounded-2xl shadow-sm border border-brand-oatmeal scrollable-col shrink-0">
+        <div id="searchOverlay" class="glass-overlay">
+          <i class="ph ph-lock-key text-5xl text-brand-sage mb-3 drop-shadow-sm"></i>
+          <span class="text-base font-bold text-gray-600 tracking-widest bg-white bg-opacity-80 px-4 py-1 rounded-full shadow-sm">請先完成登入</span>
+        </div>
+        <div class="flex justify-between items-center border-l-4 border-brand-beige pl-2 mb-6 shrink-0">
+          <h2 class="font-bold text-gray-700 flex items-center gap-2">
+            <i class="ph ph-magnifying-glass text-brand-milktea text-lg"></i> 調閱客戶資料
+          </h2>
+        </div>
+        <div class="flex flex-col gap-5 flex-grow">
+          <div class="w-full">
+            <label class="form-label text-sm">客戶姓名</label>
+            <input type="text" id="searchName" class="form-input w-full" placeholder="輸入客戶姓名 (如：王小明)">
+          </div>
+          <div class="w-full">
+            <label class="form-label text-sm">手機號碼</label>
+            <input type="tel" id="searchPhone" class="form-input w-full" placeholder="輸入電話片段 (如：0912)">
+          </div>
+          <div id="searchErrorMsg" class="hidden text-sm text-red-500 bg-red-50 p-3 rounded-lg font-bold text-center"></div>
+          <button type="button" onclick="doSearch()" id="searchBtn" class="btn-primary btn-sage mt-auto w-full">
+            <i class="ph ph-user-focus text-lg"></i> 檢索資料庫
+          </button>
+        </div>
+      </div>
+
+      <div class="w-full lg:w-1/3 flex flex-col relative bg-white p-7 sm:p-8 rounded-2xl shadow-sm border border-brand-oatmeal shrink-0">
+        <div id="resultsOverlay" class="glass-overlay">
+          <i class="ph ph-lock-key text-5xl text-brand-sage mb-3 drop-shadow-sm"></i>
+          <span class="text-base font-bold text-gray-600 tracking-widest bg-white bg-opacity-80 px-4 py-1 rounded-full shadow-sm">請先完成登入</span>
+        </div>
+        <div class="flex justify-between items-center border-l-4 border-brand-beige pl-2 mb-6 shrink-0">
+          <h2 class="font-bold text-gray-700 flex items-center gap-2">
+            <i class="ph ph-users text-brand-milktea text-lg"></i> 客戶按鈕區
+          </h2>
+        </div>
+        <div id="searchResults" class="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 hidden-scrollbar w-full">
+          <div class="text-center text-gray-400 text-sm py-10 flex flex-col items-center gap-2 w-full">
+            <i class="ph ph-magnifying-glass text-3xl opacity-50"></i>
+            <span>尚無檢索結果</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="calendarWorkspace" class="hidden-sec w-full px-4 sm:px-6 lg:px-8 mt-2 mb-6 transition-all duration-500 relative z-10">
+      <div class="bg-white p-5 sm:p-7 rounded-2xl shadow-sm border border-brand-oatmeal w-full">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-l-4 border-brand-sage pl-3 mb-5 gap-3">
+          <h2 class="font-bold text-gray-700 flex items-center gap-2 text-lg">
+            <i class="ph ph-calendar-check text-brand-sage text-2xl"></i> 全域排程行事曆
+          </h2>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="changeWeek(-1)" class="p-2 rounded-xl bg-gray-50 hover:bg-brand-sage hover:text-white text-gray-500 transition shadow-sm border border-gray-100"><i class="ph ph-caret-left text-xl font-bold"></i></button>
+            <input type="month" id="monthPicker" class="form-input py-2 px-3 text-sm w-auto font-bold text-gray-600 cursor-pointer shadow-sm" onchange="jumpToMonth()">
+            <button type="button" onclick="changeWeek(1)" class="p-2 rounded-xl bg-gray-50 hover:bg-brand-sage hover:text-white text-gray-500 transition shadow-sm border border-gray-100"><i class="ph ph-caret-right text-xl font-bold"></i></button>
+            <button type="button" id="refreshCalBtn" onclick="fetchCalendarData(true)" class="p-2 rounded-xl bg-brand-milktea text-white hover:opacity-90 transition shadow-sm ml-2 flex items-center gap-1 text-sm font-bold">
+              <i class="ph ph-arrows-clockwise text-lg"></i> <span class="hidden sm:inline">重整</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="w-full overflow-x-auto hidden-scrollbar pb-2">
+          <div class="min-w-[700px] border border-brand-oatmeal border-opacity-50 rounded-xl overflow-hidden shadow-sm">
+            <div class="grid grid-cols-8 bg-brand-beige bg-opacity-20 border-b border-brand-oatmeal border-opacity-50 text-center text-[13px] font-bold text-gray-600">
+              <div class="py-3 border-r border-brand-oatmeal border-opacity-50 flex items-center justify-center text-brand-milktea"><i class="ph ph-clock"></i> 時間</div>
+              <div id="dayHeader-0" class="py-3 border-r border-brand-oatmeal border-opacity-50">週日<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-1" class="py-3 border-r border-brand-oatmeal border-opacity-50">週一<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-2" class="py-3 border-r border-brand-oatmeal border-opacity-50">週二<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-3" class="py-3 border-r border-brand-oatmeal border-opacity-50">週三<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-4" class="py-3 border-r border-brand-oatmeal border-opacity-50">週四<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-5" class="py-3 border-r border-brand-oatmeal border-opacity-50">週五<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+              <div id="dayHeader-6" class="py-3">週六<br><span class="text-[11px] text-gray-400 font-normal">--/--</span></div>
+            </div>
+            <div id="calendarGrid" class="flex flex-col bg-white">
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="clientWorkspace" class="hidden-sec flex flex-col flex-1 pb-10 w-full px-4 sm:px-6 lg:px-8">
+      
+      <div class="w-full flex items-center justify-center py-6 lg:py-8 opacity-70">
+        <div class="w-full border-t-2 border-dashed border-brand-oatmeal"></div>
+        <div class="px-4 text-brand-milktea font-bold text-sm tracking-widest flex items-center gap-2 whitespace-nowrap"><i class="ph ph-arrow-circle-down text-xl"></i> 客戶工作站展開</div>
+        <div class="w-full border-t-2 border-dashed border-brand-oatmeal"></div>
+      </div>
+
+      <div class="flex justify-between items-center bg-white p-4 px-6 rounded-2xl shadow-sm border border-brand-oatmeal mb-6 w-full relative z-20">
+        <div class="flex items-center gap-4">
+          <div class="flex flex-col justify-center">
+            <h3 id="cName" class="font-bold text-xl text-gray-800 tracking-wide leading-tight"></h3>
+            <p id="cDetail" class="text-sm text-gray-500 flex items-center gap-1 mt-1 font-medium">
+              <i class="ph ph-identification-card text-brand-sage"></i> <span id="cGenderDob"></span>
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleChartPanel()" id="chartToggleBtn" class="text-brand-milktea font-bold hover:text-brand-sage hover:bg-brand-sage hover:bg-opacity-10 transition border border-brand-milktea border-opacity-30 px-4 py-2 rounded-xl flex items-center gap-2" title="歷史趨勢圖">
+            <i class="ph ph-chart-line-up text-xl"></i> 歷史趨勢
+          </button>
+          <button type="button" onclick="resetFlow()" class="text-gray-500 font-bold hover:text-brand-sage hover:bg-brand-sage hover:bg-opacity-10 transition border border-gray-200 px-4 py-2 rounded-xl flex items-center gap-2" title="收起工作站">
+            <i class="ph ph-arrow-u-up-left text-xl"></i> 收起面板
+          </button>
+        </div>
+      </div>
+
+      <div id="chartPanel" class="hidden flex-col bg-white p-5 rounded-2xl shadow-sm border border-brand-oatmeal mb-6 w-full transition-all duration-300 transform origin-top overflow-hidden relative">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+          <h3 class="font-bold text-gray-700 flex items-center gap-2"><i class="ph ph-trend-up text-brand-sage text-lg"></i> 近期量測趨勢分析</h3>
+          <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
+            <button type="button" onclick="switchChartMetric('height')" id="btn-chart-height" class="px-3 py-1 rounded-md text-xs font-bold text-gray-500 hover:text-brand-sage hover:bg-white transition chart-tab-btn">身高</button>
+            <button type="button" onclick="switchChartMetric('weight')" id="btn-chart-weight" class="px-3 py-1 rounded-md text-xs font-bold text-gray-500 hover:text-brand-sage hover:bg-white transition chart-tab-btn active-chart-tab bg-white shadow-sm text-brand-sage">體重</button>
+            <button type="button" onclick="switchChartMetric('bmi')" id="btn-chart-bmi" class="px-3 py-1 rounded-md text-xs font-bold text-gray-500 hover:text-brand-sage hover:bg-white transition chart-tab-btn">BMI</button>
+            <button type="button" onclick="switchChartMetric('bodyFat')" id="btn-chart-bodyFat" class="px-3 py-1 rounded-md text-xs font-bold text-gray-500 hover:text-brand-sage hover:bg-white transition chart-tab-btn">體脂率</button>
+          </div>
+        </div>
+        <div class="w-full overflow-x-auto hidden-scrollbar relative" id="chartScrollContainer">
+          <div class="relative h-64" style="min-width: 600px;" id="canvasWrapper">
+             <canvas id="historyChart"></canvas>
+          </div>
+        </div>
+        <div id="chartLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center z-10 rounded-2xl">
+          <span class="text-brand-sage font-bold flex items-center gap-2"><i class="ph ph-spinner ph-spin text-xl"></i> 數據庫同步載入中...</span>
+        </div>
+      </div>
+
+      <div class="tab-nav">
+        <div class="tab-btn active" id="nav-tab1" onclick="switchTab('tab1')"><i class="ph ph-user-list"></i> <span>客戶資料</span></div>
+        <div class="tab-btn" id="nav-tab2" onclick="switchTab('tab2')"><i class="ph ph-stethoscope"></i> <span>首次諮詢</span></div>
+        <div class="tab-btn" id="nav-tab3" onclick="switchTab('tab3')"><i class="ph ph-calendar-check"></i> <span>追蹤紀錄</span></div>
+      </div>
+
+      <div class="tabs-desktop-wrapper">
+
+        <div id="tab1" class="tab-content active gap-4">
+          <form id="basicInfoForm" class="flex flex-col gap-4 w-full h-full" oninput="if(currentClientData[0]) saveFormDraft('basicInfoForm', currentClientData[0])" onchange="if(currentClientData[0]) saveFormDraft('basicInfoForm', currentClientData[0])">
+            <input type="hidden" id="currentRowIndex">
+            
+            <div id="basicFieldsContainer" class="flex flex-col gap-4 bg-gray-50 p-5 rounded-xl border border-gray-100 w-full flex-grow"></div>
+            
+            <div id="basicUploadContainer" class="flex flex-col gap-3 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2 transition-opacity duration-300 w-full" style="opacity: 0.5; pointer-events: none;">
+              <div class="flex justify-between items-center mb-1">
+                <label class="font-bold text-brand-milktea flex items-center gap-1"><i class="ph ph-cloud-arrow-up text-lg"></i> 客戶基本相片與附件</label>
+                <a href="#" id="basicFolderLink" target="_blank" class="text-xs text-brand-sage underline hidden">開啟資料夾</a>
+              </div>
+              <div class="flex flex-col xl:flex-row gap-3 w-full">
+                <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                  <i class="ph ph-camera text-lg align-middle"></i> 拍攝 / 上傳相片
+                  <input type="file" accept="image/*" multiple onchange="handleFileUpload(event, true, 'basicFileList')">
+                </label>
+                <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                  <i class="ph ph-file-pdf text-lg align-middle"></i> 上傳其他檔案
+                  <input type="file" multiple onchange="handleFileUpload(event, false, 'basicFileList')">
+                </label>
+              </div>
+              <div id="basicFileList" class="flex flex-col gap-2 mt-2 w-full"></div>
+            </div>
+
+            <div class="mt-auto pt-4 w-full">
+              <button type="button" onclick="saveBasicInfo()" id="saveBasicBtn" class="btn-primary btn-outline shadow-sm w-full py-4 text-lg">
+                <i class="ph ph-floppy-disk text-xl"></i> 儲存基本資料修改
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div id="tab2" class="tab-content gap-5">
+          <div id="draftNotice" class="text-xs font-bold text-brand-sage bg-brand-sage bg-opacity-10 px-3 py-2 rounded-lg hidden flex items-center gap-2 w-full">
+            <i class="ph ph-clock-counter-clockwise animate-spin-slow"></i> 系統已為您還原未儲存的草稿
+          </div>
+
+          <form id="consultForm" onsubmit="submitConsultation(event)" oninput="if(currentClientData[0]) saveFormDraft('consultForm', currentClientData[0])" onchange="if(currentClientData[0]) saveFormDraft('consultForm', currentClientData[0])" class="flex flex-col gap-5 w-full h-full">
+            <div class="flex flex-col gap-5 flex-grow w-full">
+              <div class="flex flex-col gap-3 w-full">
+                <div class="w-full">
+                  <label class="form-label flex items-center gap-1"><i class="ph ph-stethoscope text-brand-sage"></i> 負責營養師 *</label>
+                  <select name="nutritionist" id="nutritionist" required class="form-input w-full bg-brand-beige bg-opacity-10 border-brand-beige">
+                    <option value="" disabled selected>載入中...</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 w-full">
+                  <input type="checkbox" name="isProxy" id="isProxy" class="w-5 h-5 text-brand-sage accent-brand-sage rounded cursor-pointer">
+                  <label for="isProxy" class="text-sm font-bold text-gray-600 cursor-pointer w-full">此為代理諮詢</label>
+                </div>
+              </div>
+              <hr class="border-brand-oatmeal border-dashed w-full">
+              
+              <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner flex flex-col gap-4 w-full">
+                <h4 class="text-sm font-bold text-gray-500 border-b border-gray-200 pb-2"><i class="ph ph-scales"></i> 身體量測指標</h4>
+                <div class="grid grid-cols-3 gap-3">
+                  <div><label class="form-label text-xs">身高(cm)</label><input type="number" id="fcHeight" name="height" step="0.1" class="form-input px-2" placeholder="數字" oninput="calcBMI('fcHeight','fcWeight','fcBmi')"></div>
+                  <div><label class="form-label text-xs">體重(kg)</label><input type="number" id="fcWeight" name="weight" step="0.1" class="form-input px-2" placeholder="數字" oninput="calcBMI('fcHeight','fcWeight','fcBmi')"></div>
+                  <div><label class="form-label text-xs">BMI</label><input type="text" id="fcBmi" name="bmi" readonly class="form-input px-2 bg-gray-100 text-brand-sage font-bold" placeholder="自動計算"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div><label class="form-label text-xs">體脂(%)</label><input type="number" name="bodyFat" step="0.1" class="form-input px-2" placeholder="數字"></div>
+                </div>
+                <div>
+                  <label class="form-label text-xs">特別量測項目與數值紀錄</label>
+                  <textarea name="specialMetrics" class="form-input" rows="2" placeholder="項目 / 數值 (單位)"></textarea>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-5 w-full">
+                <div class="w-full"><label class="form-label">生化數值、賀爾蒙檢測數值</label><textarea name="labData" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">家族病史</label><textarea name="familyHistory" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">目前正在治療的疾病或服用的藥物</label><textarea name="medicalHistory" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">此次減重動機與目標 (kg數) *</label><textarea name="weightGoal" required class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">運動習慣或是以前有運動的經驗</label><textarea name="exerciseHabit" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">睡眠習慣 (幾點睡、多久、有無中斷)</label><textarea name="sleepHabit" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">月經週期情況？經期前後有無不舒服？</label><textarea name="menstrualCycle" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">有無正在服用或常用保健食品</label><textarea name="supplements" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">以前使用過之減重方式</label><textarea name="pastDietMethods" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">失控暴食時間？宵夜？壓力？產後或疾病致胖？</label><textarea name="obesityFactors" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">有無服用精神科用藥或安眠類用藥</label><textarea name="mentalMeds" class="form-input w-full"></textarea></div>
+              </div>
+              <hr class="border-brand-oatmeal border-dashed w-full">
+              <div class="bg-brand-sage bg-opacity-10 p-5 rounded-xl border border-brand-sage border-opacity-30 w-full">
+                <label class="form-label flex items-center gap-1 text-brand-sage text-lg font-bold mb-3">
+                  <i class="ph ph-list-heart"></i> 營養師的注意事項與改善建議 *
+                </label>
+                <textarea name="suggestions" required class="form-input input-lg border-white shadow-sm w-full" placeholder="請輸入您給予客戶的專業建議..."></textarea>
+              </div>
+              <div id="uploadContainer" class="flex flex-col gap-3 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2 transition-opacity duration-300 w-full" style="opacity: 0.5; pointer-events: none;">
+                <div class="flex justify-between items-center mb-1">
+                  <label class="font-bold text-brand-milktea flex items-center gap-1"><i class="ph ph-cloud-arrow-up text-lg"></i> 諮詢附件與相片</label>
+                  <a href="#" id="folderLink" target="_blank" class="text-xs text-brand-sage underline hidden">開啟資料夾</a>
+                </div>
+                <div class="flex flex-col xl:flex-row gap-3 w-full">
+                  <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                    <i class="ph ph-camera text-lg align-middle"></i> 拍攝 / 上傳相片
+                    <input type="file" accept="image/*" multiple onchange="handleFileUpload(event, true, 'fileList')">
+                  </label>
+                  <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                    <i class="ph ph-file-pdf text-lg align-middle"></i> 上傳其他檔案
+                    <input type="file" multiple onchange="handleFileUpload(event, false, 'fileList')">
+                  </label>
+                </div>
+                <div id="fileList" class="flex flex-col gap-2 mt-2 w-full"></div>
+              </div>
+              <div class="flex flex-col gap-3 bg-brand-beige bg-opacity-10 p-5 rounded-xl border border-brand-beige border-opacity-50 mt-2 w-full">
+                <label class="form-label flex items-center gap-1 text-brand-milktea text-lg font-bold">
+                  <i class="ph ph-calendar-plus"></i> 安排下次追蹤諮詢
+                </label>
+                <div class="w-full">
+                  <label class="form-label text-sm text-gray-600">預約日期</label>
+                  <input type="date" id="nextDate" name="nextDate" class="form-input w-full" onchange="fetchAvailableSlots()">
+                </div>
+                <div class="mt-2 w-full">
+                  <label class="form-label flex justify-between items-end text-sm text-gray-600 w-full">
+                    <span>選擇時段</span>
+                    <span id="loadingText" class="text-xs text-brand-sage hidden animate-pulse">即時查詢資料庫中...</span>
+                  </label>
+                  <input type="hidden" name="nextSlot" id="nextSlot">
+                  <div id="slotContainer" class="grid grid-cols-2 gap-3 mt-2 w-full">
+                    <div class="slot-btn booked col-span-2 w-full">請先於上方選擇日期</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-auto pt-4 w-full">
+              <button type="submit" id="submitConsultBtn" class="btn-primary btn-sage text-lg shadow-lg py-4 w-full">
+                <i class="ph ph-check-circle text-xl"></i> 儲存首次諮詢與排程
+              </button>
+              <div id="sysMsg" class="text-center mt-4 hidden text-sm font-bold p-3 rounded-lg flex-col items-center justify-center gap-2 w-full"></div>
+            </div>
+          </form>
+        </div>
+
+        <div id="tab3" class="tab-content flex flex-col gap-5">
+          
+          <div class="flex flex-col gap-4 bg-brand-beige bg-opacity-10 p-5 rounded-xl border border-brand-beige border-opacity-50 w-full">
+            <label class="form-label text-brand-milktea text-lg font-bold flex items-center gap-1 mb-0">
+              <i class="ph ph-magnifying-glass-plus"></i> 查詢或新增追蹤紀錄
+            </label>
+            
+            <div class="flex flex-col gap-4 w-full mt-2">
+              <div class="w-full">
+                <label class="form-label text-sm text-gray-600 font-bold mb-2 flex items-center gap-1"><i class="ph ph-calendar-blank"></i> 1. 選擇諮詢週數</label>
+                <div id="fuWeekContainer" class="flex flex-wrap gap-2 items-center w-full">
+                  <span class="text-xs text-gray-400">載入中...</span>
+                </div>
+              </div>
+              <div id="fuSessionWrapper" class="hidden w-full border-t border-brand-beige border-opacity-30 pt-4">
+                <label class="form-label text-sm text-gray-600 font-bold mb-2 flex items-center gap-1"><i class="ph ph-list-numbers"></i> 2. 選擇該週次數</label>
+                <div id="fuSessionContainer" class="flex flex-wrap gap-2 items-center w-full">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <form id="followUpForm" class="hidden flex-col gap-5 w-full h-full" onsubmit="submitFollowUp(event)" oninput="handleFUDraftSave()" onchange="handleFUDraftSave()">
+            <div class="flex flex-col flex-grow gap-5 w-full">
+              <div id="fuEditNotice" class="hidden bg-blue-50 border border-blue-200 text-blue-600 px-4 py-3 rounded-lg flex items-center gap-2 text-sm font-bold shadow-sm w-full">
+                <i class="ph ph-info text-xl"></i> <span>歷史編輯模式。不異動排程表。</span>
+              </div>
+
+              <div class="w-full">
+                <label class="form-label flex items-center gap-1"><i class="ph ph-stethoscope text-brand-sage"></i> 本次營養師 *</label>
+                <select id="fuNutritionist" name="fuNutritionist" required class="form-input w-full bg-brand-beige bg-opacity-10 border-brand-beige">
+                  <option value="" disabled selected>載入中...</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-3 bg-gray-100 p-5 rounded-xl border border-gray-200 shadow-inner w-full">
+                <div class="text-sm font-bold text-gray-400 mb-1 border-b border-gray-200 pb-2 flex items-center gap-1"><i class="ph ph-lock-key"></i> 系統封印資訊</div>
+                <div class="grid grid-cols-2 gap-3 w-full">
+                  <div class="col-span-1">
+                    <label class="form-label text-xs">客戶編號</label>
+                    <input type="text" id="fuClientId" name="fuClientId" readonly class="form-input bg-gray-100 text-gray-500 text-sm cursor-not-allowed border-transparent px-0 py-1 h-auto w-full">
+                  </div>
+                  <div class="col-span-1">
+                    <label class="form-label text-xs">姓名</label>
+                    <input type="text" id="fuName" name="fuName" readonly class="form-input bg-gray-100 text-gray-500 text-sm cursor-not-allowed border-transparent px-0 py-1 h-auto w-full">
+                  </div>
+                  <div class="col-span-1">
+                    <label class="form-label text-xs">諮詢日期</label>
+                    <input type="text" id="fuDate" name="fuDate" readonly class="form-input bg-gray-100 text-gray-500 text-sm cursor-not-allowed border-transparent px-0 py-1 h-auto w-full">
+                  </div>
+                  <div class="col-span-1">
+                    <label class="form-label text-xs">諮詢時間</label>
+                    <input type="text" id="fuTime" name="fuTime" readonly class="form-input bg-gray-100 text-gray-500 text-sm cursor-not-allowed border-transparent px-0 py-1 h-auto w-full">
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner flex flex-col gap-4 w-full">
+                <h4 class="text-sm font-bold text-gray-500 border-b border-gray-200 pb-2"><i class="ph ph-scales"></i> 本次身體量測</h4>
+                <div class="grid grid-cols-3 gap-3">
+                  <div><label class="form-label text-xs">身高(cm)</label><input type="number" id="fuHeight" step="0.1" class="form-input px-2" oninput="calcBMI('fuHeight','fuWeight','fuBmi')"></div>
+                  <div><label class="form-label text-xs">體重(kg)</label><input type="number" id="fuWeight" step="0.1" class="form-input px-2" oninput="calcBMI('fuHeight','fuWeight','fuBmi')"></div>
+                  <div><label class="form-label text-xs">BMI</label><input type="text" id="fuBmi" readonly class="form-input px-2 bg-gray-100 text-brand-sage font-bold"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div><label class="form-label text-xs">體脂(%)</label><input type="number" id="fuBodyFat" step="0.1" class="form-input px-2"></div>
+                </div>
+                <div><label class="form-label text-xs">特別量測項目與數值</label><textarea id="fuSpecialMetrics" class="form-input" rows="2" placeholder="項目 / 數值 (單位)"></textarea></div>
+              </div>
+
+              <div class="flex flex-col gap-5 w-full">
+                <div class="w-full"><label class="form-label">諮詢紀錄</label><textarea id="fuRecord" name="fuRecord" class="form-input input-lg w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">營養師建議</label><textarea id="fuSuggestions" name="fuSuggestions" class="form-input input-lg w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">特殊備註</label><textarea id="fuNotes" name="fuNotes" class="form-input w-full"></textarea></div>
+                <div class="w-full">
+                  <label class="form-label">加購項目</label>
+                  <select id="fuAddon" name="fuAddon" class="form-input w-full" onchange="handleSelectChange(this)">
+                    <option value="" disabled selected>請選擇項目</option>
+                    <option value="高蛋白飲">高蛋白飲</option>
+                    <option value="代餐包">代餐包</option>
+                    <option value="益生菌">益生菌</option>
+                    <option value="保健食品A">保健食品A</option>
+                    <option value="ADD_NEW" class="text-brand-sage font-bold">➕ 新增選項...</option>
+                  </select>
+                </div>
+                <div class="w-full"><label class="form-label">延後方案</label><textarea id="fuPostpone" name="fuPostpone" class="form-input w-full"></textarea></div>
+                <div class="w-full"><label class="form-label">其他需求</label><textarea id="fuOther" name="fuOther" class="form-input w-full"></textarea></div>
+              </div>
+
+              <div id="fuUploadContainer" class="flex flex-col gap-3 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2 transition-opacity duration-300 w-full" style="opacity: 0.5; pointer-events: none;">
+                <div class="flex justify-between items-center mb-1 w-full">
+                  <label class="font-bold text-brand-milktea flex items-center gap-1"><i class="ph ph-cloud-arrow-up text-lg"></i> 本次諮詢附件</label>
+                  <a href="#" id="fuFolderLink" target="_blank" class="text-xs text-brand-sage underline hidden">開啟資料夾</a>
+                </div>
+                <div class="flex flex-col xl:flex-row gap-3 w-full">
+                  <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                    <i class="ph ph-camera text-lg align-middle"></i> 相片
+                    <input type="file" accept="image/*" multiple onchange="handleFileUpload(event, true, 'fuFileList')">
+                  </label>
+                  <label class="flex-1 bg-white border border-brand-sage text-brand-sage py-3 rounded-lg text-center text-sm font-bold cursor-pointer hover:bg-brand-sage hover:bg-opacity-10 transition w-full">
+                    <i class="ph ph-file-pdf text-lg align-middle"></i> 其他檔案
+                    <input type="file" multiple onchange="handleFileUpload(event, false, 'fuFileList')">
+                  </label>
+                </div>
+                <div id="fuFileList" class="flex flex-col gap-2 mt-2 w-full"></div>
+              </div>
+
+              <hr class="border-brand-oatmeal border-dashed w-full my-2">
+
+              <div class="flex flex-col gap-3 bg-brand-beige bg-opacity-10 p-5 rounded-xl border border-brand-beige border-opacity-50 mt-2 w-full">
+                <label class="form-label flex items-center gap-1 text-brand-milktea text-lg font-bold">
+                  <i class="ph ph-calendar-plus"></i> 安排下次追蹤諮詢
+                </label>
+                <div class="w-full">
+                  <label class="form-label text-sm text-gray-600">預約日期</label>
+                  <input type="date" id="fuNextDate" name="fuNextDate" class="form-input w-full" onchange="fetchAvailableSlotsFU()">
+                </div>
+                <div class="mt-2 w-full">
+                  <label class="form-label flex justify-between items-end text-sm text-gray-600 w-full">
+                    <span>選擇時段</span>
+                    <span id="fuLoadingText" class="text-xs text-brand-sage hidden animate-pulse">即時查詢資料庫中...</span>
+                  </label>
+                  <input type="hidden" name="fuNextSlot" id="fuNextSlot">
+                  <div id="fuSlotContainer" class="grid grid-cols-2 gap-3 mt-2 w-full">
+                    <div class="slot-btn booked col-span-2 w-full">請先於上方選擇日期</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-auto pt-4 w-full">
+              <button type="submit" id="submitFollowUpBtn" class="btn-primary btn-sage text-lg shadow-lg py-4 transition-colors duration-300 w-full">
+                <i class="ph ph-check-circle text-xl"></i> <span>儲存追蹤紀錄與排程結案</span>
+              </button>
+              <div id="fuSysMsg" class="text-center mt-4 hidden text-sm font-bold p-3 rounded-lg flex-col items-center justify-center gap-2 w-full"></div>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const IDLE_TIMEOUT_MS = 1 * 60 * 60 * 1000;
+    let lastActivityTime = Date.now();
+    let activityUpdateTimer = null;
+
+    function throttleActivityUpdate() {
+      lastActivityTime = Date.now();
+      if (!activityUpdateTimer) {
+        activityUpdateTimer = setTimeout(() => {
+          const session = JSON.parse(localStorage.getItem('nuheal_session'));
+          if (session) {
+            session.lastActive = lastActivityTime;
+            localStorage.setItem('nuheal_session', JSON.stringify(session));
+          }
+          activityUpdateTimer = null;
+        }, 5000);
+      }
+    }
+
+    ['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, throttleActivityUpdate, { passive: true });
+    });
+
+    function validateSession() {
+      const session = JSON.parse(localStorage.getItem('nuheal_session'));
+      if (!session) return false;
+      const currentTime = Date.now();
+      if (currentTime - session.lastActive > IDLE_TIMEOUT_MS) {
+        alert("系統已閒置超過 1 小時。基於資料安全防護，請重新登入。");
+        doLogout();
+        return false;
+      }
+      return true;
+    }
+
+    function doLogout() {
+      localStorage.removeItem('nuheal_session');
+      loggedInNutritionist = "";
+      
+      document.getElementById('searchOverlay').classList.remove('hidden');
+      document.getElementById('resultsOverlay').classList.remove('hidden');
+      document.getElementById('currentUserDisplay').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.getElementById('loginBtn').classList.remove('hidden');
+      
+      document.getElementById('clientWorkspace').classList.add('hidden-sec');
+      document.getElementById('calendarWorkspace').classList.add('hidden-sec');
+      
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPwd').value = '';
+      document.getElementById('searchName').value = '';
+      document.getElementById('searchPhone').value = '';
+      document.getElementById('searchResults').innerHTML = `
+        <div class="text-center text-gray-400 text-sm py-10 flex flex-col items-center gap-2 w-full">
+          <i class="ph ph-magnifying-glass text-3xl opacity-50"></i>
+          <span>尚無檢索結果</span>
+        </div>`;
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const ALL_SLOTS = ['09:30', '11:30', '14:00', '15:30', '17:00'];
+    const basicHeaders = ["客戶編號 (唯讀)", "填表日期", "填表時間", "Email", "客戶姓名", "性別", "出生日期", "手機", "Line ID", "方便聯絡時間", "欲諮詢營養問題", "減重方式/現況", "減重目標/改善方向", "預約日期", "預約時段", "諮詢方式", "從哪裡得知", "照片/圖片"];
+    const displayOrder = [17, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+    
+    let loggedInNutritionist = ""; let currentClientData = []; 
+    let currentFollowUps = []; let pendingFuRecords = []; 
+    let selectedFuWeek = null; let selectedFuSession = null;
+    let isFollowUpEditMode = false; let sessionFolderId = ""; let sessionBaseFileName = "";
+    let currentSessionFolderUrl = ""; let imgSeq = 1; let fileSeq = 1;
+
+    let calendarCache = {};
+    let currentWeekStart = new Date();
+    
+    const calColors = [
+      'bg-blue-50 border-blue-200 text-blue-700',
+      'bg-rose-50 border-rose-200 text-rose-700',
+      'bg-emerald-50 border-emerald-200 text-emerald-700',
+      'bg-amber-50 border-amber-200 text-amber-700',
+      'bg-violet-50 border-violet-200 text-violet-700',
+      'bg-cyan-50 border-cyan-200 text-cyan-700',
+      'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700'
+    ];
+    let nutColorMap = {};
+
+    function getNutColor(nutName) {
+      if (!nutColorMap[nutName]) {
+        const idx = Object.keys(nutColorMap).length % calColors.length;
+        nutColorMap[nutName] = calColors[idx];
+      }
+      return nutColorMap[nutName];
+    }
+
+    function initCalendar() {
+      const d = new Date();
+      d.setDate(d.getDate() - d.getDay());
+      d.setHours(0, 0, 0, 0);
+      currentWeekStart = d;
+      renderCalendarGrid();
+      fetchCalendarData();
+    }
+
+    function renderCalendarGrid() {
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(currentWeekStart);
+        day.setDate(day.getDate() + i);
+        const mdStr = `${String(day.getMonth()+1).padStart(2,'0')}/${String(day.getDate()).padStart(2,'0')}`;
+        const weekdays = ['週日','週一','週二','週三','週四','週五','週六'];
+        document.getElementById(`dayHeader-${i}`).innerHTML = `${weekdays[i]}<br><span class="text-[11px] text-gray-400 font-normal">${mdStr}</span>`;
+      }
+      
+      const yyyy = currentWeekStart.getFullYear();
+      const mm = String(currentWeekStart.getMonth() + 1).padStart(2, '0');
+      document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      ALL_SLOTS.forEach((slot, index) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = `grid grid-cols-8 min-h-[70px] ${index !== ALL_SLOTS.length - 1 ? 'border-b border-gray-100' : ''}`;
+        
+        const timeCell = document.createElement('div');
+        timeCell.className = 'border-r border-gray-100 bg-gray-50 bg-opacity-30 flex items-center justify-center text-xs font-bold text-gray-500 py-2';
+        timeCell.innerText = slot;
+        rowDiv.appendChild(timeCell);
+
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(currentWeekStart);
+          day.setDate(day.getDate() + i);
+          const dateKey = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+          
+          const cell = document.createElement('div');
+          cell.id = `cal-cell-${dateKey}-${slot}`;
+          cell.className = 'border-r border-gray-100 p-1 flex flex-col gap-1 overflow-y-auto hidden-scrollbar';
+          rowDiv.appendChild(cell);
+        }
+        grid.appendChild(rowDiv);
+      });
+    }
+
+    function changeWeek(offset) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + (offset * 7));
+      renderCalendarGrid();
+      fetchCalendarData();
+    }
+
+    function jumpToMonth() {
+      const val = document.getElementById('monthPicker').value;
+      if (!val) return;
+      const [y, m] = val.split('-');
+      const d = new Date(y, parseInt(m)-1, 1);
+      d.setDate(d.getDate() - d.getDay()); 
+      currentWeekStart = d;
+      renderCalendarGrid();
+      fetchCalendarData();
+    }
+
+    function fetchCalendarData(forceRefresh = false) {
+      if (!validateSession()) return;
+      const btn = document.getElementById('refreshCalBtn');
+      
+      const endDate = new Date(currentWeekStart);
+      endDate.setDate(endDate.getDate() + 6);
+
+      const sY = currentWeekStart.getFullYear(); const sM = String(currentWeekStart.getMonth() + 1).padStart(2, '0'); const sD = String(currentWeekStart.getDate()).padStart(2, '0');
+      const eY = endDate.getFullYear(); const eM = String(endDate.getMonth() + 1).padStart(2, '0'); const eD = String(endDate.getDate()).padStart(2, '0');
+
+      const weekKey = `${sY}-${sM}-${sD}`;
+
+      const renderBlocks = (appointments) => {
+        document.querySelectorAll('[id^="cal-cell-"]').forEach(el => el.innerHTML = '');
+        appointments.forEach(appt => {
+          const safeDate = appt.date.split('/').join('-'); 
+          const targetId = `cal-cell-${safeDate}-${appt.slot}`;
+          const cell = document.getElementById(targetId);
+          if (cell) {
+            const colorClass = getNutColor(appt.nutritionist);
+            const block = document.createElement('div');
+            block.className = `w-full p-1.5 border rounded-md text-[11px] leading-snug shadow-sm truncate transition-transform hover:scale-105 cursor-default ${colorClass}`;
+            block.innerHTML = `<span class="font-bold block truncate" title="${appt.clientName}">${appt.clientName}</span><span class="truncate text-[10px] opacity-90" title="${appt.nutritionist}">(${appt.nutritionist})</span>`;
+            cell.appendChild(block);
+          }
+        });
+      };
+
+      if (!forceRefresh && calendarCache[weekKey]) {
+        renderBlocks(calendarCache[weekKey]);
+        return; 
+      }
+
+      btn.innerHTML = '<i class="ph ph-spinner ph-spin text-lg"></i> <span class="hidden sm:inline">讀取中</span>';
+      btn.disabled = true;
+
+      window.google.script.run
+        .withSuccessHandler(res => {
+          btn.innerHTML = '<i class="ph ph-arrows-clockwise text-lg"></i> <span class="hidden sm:inline">重整</span>';
+          btn.disabled = false;
+          if(res.status === 'success') {
+            calendarCache[weekKey] = res.data; 
+            renderBlocks(res.data);
+          } else { console.error('行事曆讀取失敗:', res.message); }
+        })
+        .withFailureHandler(err => {
+          btn.innerHTML = '<i class="ph ph-warning-circle text-lg text-red-200"></i> 異常';
+          btn.disabled = false;
+          console.error('行事曆系統異常:', err);
+        })
+        .getWeeklySchedule(`${sY}-${sM}-${sD}`, `${eY}-${eM}-${eD}`);
+    }
+
+    let chartInstance = null;
+    let clientChartDataCache = {}; 
+    let currentChartMetric = 'weight'; 
+
+    function toggleChartPanel() {
+      const panel = document.getElementById('chartPanel');
+      if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+        loadAndRenderChart();
+      } else {
+        panel.classList.add('hidden');
+        panel.classList.remove('flex');
+      }
+    }
+
+    function switchChartMetric(metric) {
+      currentChartMetric = metric;
+      document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-sage', 'active-chart-tab');
+      });
+      document.getElementById(`btn-chart-${metric}`).classList.add('bg-white', 'shadow-sm', 'text-brand-sage', 'active-chart-tab');
+      renderChart();
+    }
+
+    function loadAndRenderChart() {
+      const clientId = currentClientData[0];
+      if (!clientId) return;
+
+      if (clientChartDataCache[clientId]) {
+        renderChart();
+        return;
+      }
+
+      document.getElementById('chartLoading').classList.remove('hidden');
+
+      window.google.script.run
+        .withSuccessHandler(res => {
+          document.getElementById('chartLoading').classList.add('hidden');
+          if (res.status === 'success') {
+            clientChartDataCache[clientId] = res.data;
+            renderChart();
+          } else {
+            alert('圖表數據讀取失敗: ' + res.message);
+          }
+        })
+        .withFailureHandler(err => {
+          document.getElementById('chartLoading').classList.add('hidden');
+          console.error('圖表系統異常:', err);
+        })
+        .getClientMetricsHistory(clientId);
+    }
+
+    function renderChart() {
+      const clientId = currentClientData[0];
+      const data = clientChartDataCache[clientId];
+      if (!data || data.length === 0) return;
+
+      const metricConfig = {
+        height: { label: '身高 (cm)', color: '#D5CFC4', bgColor: 'rgba(213, 207, 196, 0.2)' },
+        weight: { label: '體重 (kg)', color: '#1F382A', bgColor: 'rgba(31, 56, 42, 0.2)' },
+        bmi: { label: 'BMI', color: '#C6A87C', bgColor: 'rgba(198, 168, 124, 0.2)' },
+        bodyFat: { label: '體脂率 (%)', color: '#C6A87C', bgColor: 'rgba(198, 168, 124, 0.2)' }
+      };
+
+      const config = metricConfig[currentChartMetric];
+
+      const labels = data.map(d => {
+        const parts = d.date.split('/');
+        const dateShort = parts.length >= 3 ? `${parts[1]}/${parts[2]}` : d.date;
+        
+        let typeShort = '首次';
+        if (d.sortW > 0) {
+          typeShort = `W${d.sortW}-S${d.sortS}`;
+        }
+        return [typeShort, dateShort]; 
+      });
+
+      const datasetData = data.map(d => d[currentChartMetric]);
+
+      const wrapper = document.getElementById('canvasWrapper');
+      const minWidthPerPoint = 85; 
+      const calculatedWidth = Math.max(wrapper.parentElement.clientWidth, data.length * minWidthPerPoint);
+      wrapper.style.width = calculatedWidth + 'px';
+
+      const ctx = document.getElementById('historyChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: config.label,
+            data: datasetData,
+            borderColor: config.color,
+            backgroundColor: config.bgColor,
+            borderWidth: 3,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: config.color,
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4 
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#4A4A4A',
+              bodyColor: '#4A4A4A',
+              borderColor: '#E5E7EB',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                title: function(context) {
+                  const index = context[0].dataIndex;
+                  return `${data[index].type} (${data[index].date})`;
+                },
+                label: function(context) {
+                  return `${config.label}: ${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#9CA3AF', font: { size: 11, family: "'Noto Sans TC', sans-serif" } }
+            },
+            y: {
+              grid: { color: '#F3F4F6', drawBorder: false },
+              ticks: { color: '#9CA3AF', font: { size: 11, family: "'Noto Sans TC', sans-serif" } },
+              suggestedMin: Math.min(...datasetData.filter(v=>v)) * 0.95,
+              suggestedMax: Math.max(...datasetData.filter(v=>v)) * 1.05
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
+        }
+      });
+      
+      const scrollContainer = document.getElementById('chartScrollContainer');
+      scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+    }
+
+    function calcAge(dobStr) {
+      if (!dobStr) return '';
+      const dob = new Date(dobStr);
+      if (isNaN(dob)) return '';
+      const ageDate = new Date(Date.now() - dob.getTime());
+      return Math.abs(ageDate.getUTCFullYear() - 1970);
+    }
+
+    function calcBMI(hId, wId, bmiId) {
+      const h = parseFloat(document.getElementById(hId).value);
+      const w = parseFloat(document.getElementById(wId).value);
+      const bmi = document.getElementById(bmiId);
+      if (h > 0 && w > 0) bmi.value = (w / Math.pow(h/100, 2)).toFixed(1);
+      else bmi.value = '';
+    }
+
+    function saveFormDraft(formId, draftKeyPostfix) {
+      if (!draftKeyPostfix) return;
+      const formData = new FormData(document.getElementById(formId));
+      const obj = Object.fromEntries(formData.entries());
+      const checkboxes = document.getElementById(formId).querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => obj[cb.name] = cb.checked);
+      localStorage.setItem(`nuheal_draft_${formId}_${draftKeyPostfix}`, JSON.stringify(obj));
+    }
+
+    function loadFormDraft(formId, draftKeyPostfix) {
+      const draft = localStorage.getItem(`nuheal_draft_${formId}_${draftKeyPostfix}`);
+      if (draft) {
+        try {
+          const obj = JSON.parse(draft);
+          for (const key in obj) { 
+            const ip = document.querySelector(`#${formId} [name="${key}"]`); 
+            if (ip && ip.type !== 'hidden' && ip.type !== 'file' && ip.type !== 'checkbox') {
+              if (ip.tagName === 'SELECT') setSelectValueSafely(ip, obj[key]);
+              else ip.value = obj[key];
+            } else if (ip && ip.type === 'checkbox') {
+              ip.checked = obj[key] === true;
+            }
+          } return true; 
+        } catch (e) { console.error("Draft error", e); }
+      } return false;
+    }
+
+    function clearFormDraft(formId, draftKeyPostfix) { localStorage.removeItem(`nuheal_draft_${formId}_${draftKeyPostfix}`); }
+    
+    function handleFUDraftSave() {
+      if(currentClientData[0] && selectedFuWeek && selectedFuSession) {
+        saveFormDraft('followUpForm', `${currentClientData[0]}_w${selectedFuWeek}_s${selectedFuSession}`);
+      }
+    }
+
+    function doLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pwd = document.getElementById('loginPwd').value.trim();
+      const btn = document.getElementById('loginBtn');
+      const errorMsg = document.getElementById('loginErrorMsg');
+
+      if (!email || !pwd) { errorMsg.innerText = "請完整輸入 Email 與密碼"; errorMsg.classList.remove('hidden'); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin text-lg"></i> 驗證中...'; errorMsg.classList.add('hidden');
+
+      window.google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false; btn.innerHTML = '<i class="ph ph-sign-in text-lg"></i> 登入 / 重新驗證';
+          if (res.status === 'success') {
+            loggedInNutritionist = res.name;
+            document.getElementById('searchOverlay').classList.add('hidden');
+            document.getElementById('resultsOverlay').classList.add('hidden');
+            document.getElementById('loginBtn').classList.add('hidden');
+            
+            const userDisp = document.getElementById('currentUserDisplay');
+            userDisp.innerHTML = `<i class="ph ph-user-circle"></i> 目前登入：${res.name}`;
+            userDisp.classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+            
+            localStorage.setItem('nuheal_session', JSON.stringify({ email: email, name: res.name, lastActive: Date.now() }));
+            
+            setSelectValueSafely(document.getElementById('nutritionist'), res.name);
+            setSelectValueSafely(document.getElementById('fuNutritionist'), res.name);
+
+            document.getElementById('calendarWorkspace').classList.remove('hidden-sec');
+            initCalendar();
+            
+          } else {
+            errorMsg.innerText = res.message; errorMsg.classList.remove('hidden');
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false; btn.innerHTML = '<i class="ph ph-sign-in text-lg"></i> 登入 / 重新驗證';
+          errorMsg.innerText = "系統/連線異常：" + err.message; errorMsg.classList.remove('hidden');
+        })
+        .verifyLogin(email, pwd);
+    }
+
+    function formatDateForInput(dateStr) {
+      if (!dateStr || dateStr === '無' || dateStr.trim() === '') return '';
+      return dateStr.split('/').join('-').trim();
+    }
+
+    let currentSelectElem = null;
+    function handleSelectChange(elem) {
+      if (elem.value === 'ADD_NEW') {
+        currentSelectElem = elem; document.getElementById('newOptionInput').value = '';
+        document.getElementById('customOptionModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('newOptionInput').focus(), 100);
+      }
+    }
+    function closeAddOptionModal() {
+      document.getElementById('customOptionModal').classList.add('hidden');
+      if (currentSelectElem && currentSelectElem.value === 'ADD_NEW') currentSelectElem.selectedIndex = 0; currentSelectElem = null;
+    }
+    function confirmAddOption() {
+      const val = document.getElementById('newOptionInput').value.trim();
+      if (!val) return alert('請輸入內容');
+      const option = document.createElement('option'); option.value = val; option.text = val;
+      currentSelectElem.insertBefore(option, currentSelectElem.lastElementChild);
+      currentSelectElem.value = val; document.getElementById('customOptionModal').classList.add('hidden'); currentSelectElem = null;
+    }
+    function setSelectValueSafely(selectElem, val) {
+      if (!selectElem || !val || val === '無') return;
+      let exists = false;
+      for(let i = 0; i < selectElem.options.length; i++) { if(selectElem.options[i].value === val) { exists = true; break; } }
+      if(!exists) {
+        const newOpt = document.createElement('option'); newOpt.value = val; newOpt.text = val;
+        if(selectElem.lastElementChild && selectElem.lastElementChild.value === 'ADD_NEW') selectElem.insertBefore(newOpt, selectElem.lastElementChild);
+        else selectElem.appendChild(newOpt);
+      } selectElem.value = val;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const dateInputs = [document.getElementById('nextDate'), document.getElementById('fuNextDate')];
+      const today = new Date(); today.setDate(today.getDate() + 1);
+      const sixMonthsLater = new Date(); sixMonthsLater.setMonth(today.getMonth() + 6);
+      dateInputs.forEach(input => { if(input) { input.min = today.toISOString().split('T')[0]; input.max = sixMonthsLater.toISOString().split('T')[0]; } });
+
+      const session = JSON.parse(localStorage.getItem('nuheal_session'));
+      if (session && (Date.now() - session.lastActive <= IDLE_TIMEOUT_MS)) {
+        loggedInNutritionist = session.name;
+        document.getElementById('loginEmail').value = session.email;
+        document.getElementById('searchOverlay').classList.add('hidden');
+        document.getElementById('resultsOverlay').classList.add('hidden');
+        document.getElementById('loginBtn').classList.add('hidden');
+        const userDisp = document.getElementById('currentUserDisplay');
+        userDisp.innerHTML = `<i class="ph ph-user-circle"></i> 目前登入：${session.name}`;
+        userDisp.classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        
+        document.getElementById('calendarWorkspace').classList.remove('hidden-sec');
+        initCalendar();
+      } else {
+        localStorage.removeItem('nuheal_session');
+      }
+
+      window.google.script.run
+        .withSuccessHandler(res => {
+          const selects = [document.getElementById('nutritionist'), document.getElementById('fuNutritionist')];
+          if (res.status === 'success') {
+            selects.forEach(sel => {
+              if(!sel) return; sel.innerHTML = '<option value="" disabled selected>請選擇營養師</option>';
+              res.data.forEach(name => { const opt = document.createElement('option'); opt.value = name; opt.text = name; sel.appendChild(opt); });
+              if (loggedInNutritionist) setSelectValueSafely(sel, loggedInNutritionist);
+            });
+          } else { selects.forEach(sel => sel.innerHTML = `<option value="" disabled selected>載入失敗</option>`); }
+        })
+        .withFailureHandler(err => console.error("營養師選單載入失敗:", err))
+        .getNutritionistList();
+      
+      document.getElementById('loginPwd').addEventListener('keyup', function(e) { if (e.key === 'Enter') doLogin(); });
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('nav-' + tabId).classList.add('active');
+    }
+    
+    function resetFlow() {
+      // 收合介面時自動將圖表也收起
+      document.getElementById('chartPanel').classList.add('hidden');
+      document.getElementById('chartPanel').classList.remove('flex');
+      
+      document.getElementById('clientWorkspace').classList.add('hidden-sec');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function doSearch() {
+      if (!validateSession()) return; 
+      const name = document.getElementById('searchName').value.trim();
+      const phone = document.getElementById('searchPhone').value.trim();
+      const resDiv = document.getElementById('searchResults');
+      const errorMsg = document.getElementById('searchErrorMsg');
+      const btn = document.getElementById('searchBtn');
+      if(!name && !phone) return alert("請至少輸入一項條件");
+      
+      btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin text-lg"></i> 檢索中...'; resDiv.innerHTML = ''; errorMsg.classList.add('hidden');
+      
+      window.google.script.run
+        .withSuccessHandler(res => {
+          btn.disabled = false; btn.innerHTML = '<i class="ph ph-user-focus text-lg"></i> 檢索資料庫';
+          if(res.status === 'success') {
+            if(res.data.length === 0) resDiv.innerHTML = '<p class="text-sm text-red-400 bg-red-50 p-4 rounded-xl text-center w-full"><i class="ph ph-warning-circle text-lg"></i> 找不到客戶</p>';
+            else res.data.forEach(client => {
+              const btn = document.createElement('button');
+              btn.className = 'w-full text-left p-4 border border-brand-oatmeal rounded-xl hover:bg-brand-beige transition flex items-center gap-4 shadow-sm bg-white shrink-0';
+              btn.innerHTML = `<div class="bg-brand-sage bg-opacity-20 p-3 rounded-full text-brand-sage shrink-0"><i class="ph ph-user text-2xl"></i></div>
+                <div class="flex flex-col"><div class="text-brand-milktea font-bold text-[17px] mb-0.5">${client.name}</div>
+                <div class="text-[13px] text-gray-500"><i class="ph ph-phone align-middle"></i> ${client.phone} | <i class="ph ph-barcode align-middle"></i> ${client.id}</div></div>`;
+              btn.onclick = () => loadClient(client); resDiv.appendChild(btn);
+            });
+          } else { errorMsg.innerText = `錯誤：${res.message}`; errorMsg.classList.remove('hidden'); }
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false; btn.innerHTML = '<i class="ph ph-user-focus text-lg"></i> 檢索資料庫';
+          errorMsg.innerText = `系統/連線異常：${err.message}`; errorMsg.classList.remove('hidden');
+        })
+        .searchClients(name, phone);
+    }
+
+    function loadClient(client) {
+      document.getElementById('clientWorkspace').classList.remove('hidden-sec');
+      setTimeout(() => { document.getElementById('clientWorkspace').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+
+      document.getElementById('currentRowIndex').value = client.rowIndex;
+      currentClientData = client.fullData; 
+      const clientId = currentClientData[0]; 
+      const name = currentClientData[4]; 
+      
+      const age = calcAge(currentClientData[6]);
+
+      document.getElementById('cName').innerText = name;
+      document.getElementById('cGenderDob').innerText = `${currentClientData[5]} / ${currentClientData[6]} (${age} 歲)`;
+
+      // 新載入客戶時重置圖表狀態
+      clientChartDataCache = {};
+      document.getElementById('chartPanel').classList.add('hidden');
+      document.getElementById('chartPanel').classList.remove('flex');
+
+      const container = document.getElementById('basicFieldsContainer'); container.innerHTML = ''; 
+      
+      displayOrder.forEach(idx => {
+        const val = currentClientData[idx]; 
+        const div = document.createElement('div'); div.className = "flex flex-col w-full";
+        const label = document.createElement('label'); label.className = 'form-label text-xs'; label.innerText = basicHeaders[idx]; div.appendChild(label);
+        
+        let input;
+        
+        if (idx === 17) {
+          if (!val || val.trim() === '' || val === '無' || val === '未上傳' || val === '未提供') {
+            input = document.createElement('input');
+            input.type = 'text'; input.name = 'basic_col_' + idx; input.value = '未提供';
+            input.readOnly = true; input.className = 'form-input bg-gray-100 text-gray-500 text-sm w-full cursor-not-allowed';
+            input.id = 'basic_col_' + idx;
+            div.appendChild(input);
+          } else {
+            input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'basic_col_' + idx; input.value = val;
+            input.id = 'basic_col_' + idx;
+            div.appendChild(input);
+
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = 'flex gap-3 overflow-x-auto pb-2 hidden-scrollbar w-full items-center mt-1';
+            
+            const urls = val.split(',').map(s => s.trim()).filter(s => s);
+            urls.forEach(url => {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'relative shrink-0 w-24 h-24 rounded-xl border border-brand-oatmeal bg-white flex flex-col items-center justify-center overflow-hidden shadow-sm';
+              
+              if (url.includes('drive.google.com')) {
+                wrapper.innerHTML = '<i class="ph ph-spinner ph-spin text-brand-sage text-2xl"></i><span class="text-[10px] text-gray-400 mt-1">讀取中</span>';
+                
+                window.google.script.run
+                  .withSuccessHandler(base64 => {
+                    if (base64 && base64.startsWith('data:image')) {
+                      wrapper.innerHTML = `<img src="${base64}" class="w-full h-full object-cover cursor-pointer hover:scale-110 transition duration-300" onclick="document.getElementById('enlargedPhoto').src=this.src; document.getElementById('photoModal').style.display='flex';" title="點擊放大預覽">`;
+                    } else {
+                      wrapper.innerHTML = `<a href="${url}" target="_blank" class="flex flex-col items-center justify-center w-full h-full text-brand-sage hover:bg-brand-sage hover:bg-opacity-10 transition p-2 text-center text-xs"><i class="ph ph-arrow-square-out text-2xl mb-1"></i><span>外部檔案</span></a>`;
+                    }
+                  })
+                  .withFailureHandler(err => {
+                    wrapper.innerHTML = `<a href="${url}" target="_blank" class="flex flex-col items-center justify-center w-full h-full text-brand-sage hover:bg-brand-sage hover:bg-opacity-10 transition p-2 text-center text-xs"><i class="ph ph-warning-circle text-2xl mb-1 text-red-400"></i><span>無法預覽</span></a>`;
+                  })
+                  .getDriveImageBase64(url);
+              } else {
+                wrapper.innerHTML = `<a href="${url}" target="_blank" class="flex flex-col items-center justify-center w-full h-full text-brand-sage hover:bg-brand-sage hover:bg-opacity-10 transition p-2 text-center text-xs"><i class="ph ph-link text-2xl mb-1"></i><span>開啟連結</span></a>`;
+              }
+              scrollContainer.appendChild(wrapper);
+            });
+            div.appendChild(scrollContainer);
+          }
+        } 
+        else if (idx === 0 || idx === 1 || idx === 2) { 
+          input = document.createElement('input'); input.type = 'text'; input.name = 'basic_col_' + idx; input.readOnly = true; input.className = 'form-input bg-gray-100 text-gray-500 text-sm w-full'; 
+        }
+        else if (idx === 5) { 
+          input = document.createElement('select'); input.name = 'basic_col_' + idx; input.className = 'form-input text-sm bg-white w-full'; input.innerHTML = '<option value="" disabled>請選擇</option><option value="女">女</option><option value="男">男</option><option value="其他">其他</option>'; 
+        }
+        else if (idx === 6 || idx === 13) { 
+          input = document.createElement('input'); input.type = 'date'; input.name = 'basic_col_' + idx; input.className = 'form-input text-sm bg-white w-full'; 
+        }
+        else if (idx === 10 || idx === 14 || idx === 15) {
+          input = document.createElement('select'); input.name = 'basic_col_' + idx; input.className = 'form-input text-sm bg-white w-full'; input.onchange = function() { handleSelectChange(this); };
+          let opts = '<option value="" disabled selected>請選擇</option>';
+          if(idx===10) opts += '<option value="減重相關">減重相關問題</option><option value="疾病營養">慢性病/疾病營養調理</option><option value="孕產期營養">備孕/孕產</option><option value="日常保健">日常保健</option>';
+          if(idx===14) opts += '<option value="09:30">09:30</option><option value="11:30">11:30</option><option value="14:00">14:00</option><option value="15:30">15:30</option><option value="17:00">17:00</option>';
+          if(idx===15) opts += '<option value="實體現場諮詢">實體現場諮詢</option><option value="線上視訊諮詢">線上視訊諮詢</option>';
+          opts += '<option value="ADD_NEW" class="text-brand-sage font-bold">➕ 新增選項...</option>'; input.innerHTML = opts;
+        } 
+        else if (idx === 11 || idx === 12) { 
+          input = document.createElement('textarea'); input.name = 'basic_col_' + idx; input.className = 'form-input text-sm w-full'; input.rows = 2; 
+        }
+        else { 
+          input = document.createElement('input'); input.type = 'text'; input.name = 'basic_col_' + idx; input.className = 'form-input text-sm w-full'; 
+        }
+        
+        if (idx !== 17) {
+          input.id = 'basic_col_' + idx;
+          if (val && val !== '無') {
+            if (idx === 6 || idx === 13) input.value = formatDateForInput(val);
+            else if (input.tagName === 'SELECT') setSelectValueSafely(input, val);
+            else input.value = val;
+          }
+          div.appendChild(input);
+        }
+        
+        container.appendChild(div);
+      });
+
+      loadFormDraft('basicInfoForm', currentClientData[0]);
+
+      const map = { nutritionist: 20, height: 22, weight: 23, bmi: 24, bodyFat: 25, labData: 26, specialMetrics: 27, familyHistory: 28, medicalHistory: 29, weightGoal: 30, exerciseHabit: 31, sleepHabit: 32, menstrualCycle: 33, supplements: 34, pastDietMethods: 35, obesityFactors: 36, mentalMeds: 37, suggestions: 39, nextDate: 40 };
+      for (const key in map) {
+        const el = document.querySelector(`#consultForm [name="${key}"]`); const dataVal = currentClientData[map[key]];
+        if (el && dataVal && dataVal !== '無') {
+          if (key === 'nextDate') el.value = formatDateForInput(dataVal);
+          else if (el.tagName === 'SELECT') setSelectValueSafely(el, dataVal);
+          else el.value = dataVal;
+        }
+      }
+      if (currentClientData[21] === '是') document.getElementById('isProxy').checked = true;
+
+      const hasConsultDraft = loadFormDraft('consultForm', currentClientData[0]);
+      if (hasConsultDraft) document.getElementById('draftNotice').classList.remove('hidden');
+      else if (loggedInNutritionist) setSelectValueSafely(document.getElementById('nutritionist'), loggedInNutritionist);
+      
+      if (document.getElementById('nextDate').value) fetchAvailableSlots(document.getElementById('nextSlot').value || (currentClientData[41] !== '無' ? currentClientData[41] : null));
+
+      document.getElementById('fuWeekContainer').innerHTML = '<span class="text-xs text-brand-sage"><i class="ph ph-spinner ph-spin"></i> 載入資料庫中...</span>';
+      document.getElementById('followUpForm').classList.add('hidden'); document.getElementById('followUpForm').classList.remove('flex');
+      
+      window.google.script.run
+        .withSuccessHandler(res => { 
+          if(res.status === 'success') {
+            currentFollowUps = res.data; 
+            pendingFuRecords = [];
+            selectedFuWeek = null;
+            selectedFuSession = null;
+            renderFuSelector();
+          }
+        })
+        .withFailureHandler(err => console.error('取得追蹤紀錄失敗:', err))
+        .getFollowUpRecords(clientId);
+      
+      sessionFolderId = ""; 
+      document.getElementById('uploadContainer').style.opacity = '0.5'; 
+      document.getElementById('fuUploadContainer').style.opacity = '0.5';
+      document.getElementById('basicUploadContainer').style.opacity = '0.5'; 
+      
+      window.google.script.run
+        .withSuccessHandler(res => {
+          if(res.status === 'success') {
+            sessionFolderId = res.folderId; sessionBaseFileName = res.baseFileName; currentSessionFolderUrl = res.folderUrl; 
+            
+            document.getElementById('folderLink').href = res.folderUrl; document.getElementById('folderLink').classList.remove('hidden');
+            document.getElementById('uploadContainer').style.opacity = '1'; document.getElementById('uploadContainer').style.pointerEvents = 'auto';
+            
+            document.getElementById('fuFolderLink').href = res.folderUrl; document.getElementById('fuFolderLink').classList.remove('hidden');
+            document.getElementById('fuUploadContainer').style.opacity = '1'; document.getElementById('fuUploadContainer').style.pointerEvents = 'auto';
+
+            document.getElementById('basicFolderLink').href = res.folderUrl; document.getElementById('basicFolderLink').classList.remove('hidden');
+            document.getElementById('basicUploadContainer').style.opacity = '1'; document.getElementById('basicUploadContainer').style.pointerEvents = 'auto';
+          }
+        })
+        .withFailureHandler(err => console.error('啟動日誌夾失敗:', err))
+        .startConsultationLog(client.rowIndex);
+
+      switchTab('tab1');
+    }
+
+    function renderFuSelector() {
+      const weekContainer = document.getElementById('fuWeekContainer');
+      const sessionContainer = document.getElementById('fuSessionContainer');
+      const sessionWrapper = document.getElementById('fuSessionWrapper');
+      
+      weekContainer.innerHTML = ''; sessionContainer.innerHTML = '';
+      
+      let weeks = new Set();
+      currentFollowUps.forEach(r => weeks.add(parseInt(r.week)));
+      pendingFuRecords.forEach(r => weeks.add(parseInt(r.week)));
+      let weekArray = Array.from(weeks).sort((a,b) => a-b);
+      
+      if(weekArray.length === 0) weekContainer.innerHTML = '<span class="text-xs text-gray-400">尚無任何紀錄，請點擊新增</span>';
+
+      weekArray.forEach(w => {
+        const btn = document.createElement('button'); btn.type = 'button';
+        btn.className = `px-4 py-2 rounded-xl font-bold text-sm transition-all border flex items-center gap-1 shrink-0 ${selectedFuWeek === w ? 'bg-brand-sage text-brand-milktea border-brand-sage shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-brand-sage hover:text-brand-sage'}`;
+        btn.innerText = `第 ${w} 週`;
+        btn.onclick = () => { selectedFuWeek = w; selectedFuSession = null; document.getElementById('followUpForm').classList.remove('flex'); document.getElementById('followUpForm').classList.add('hidden'); renderFuSelector(); };
+        weekContainer.appendChild(btn);
+      });
+      
+      const maxW = weekArray.length > 0 ? Math.max(...weekArray) : 0;
+      const addWeekBtn = document.createElement('button'); addWeekBtn.type = 'button';
+      addWeekBtn.className = `px-3 py-2 rounded-xl font-bold text-sm bg-white text-brand-sage border border-brand-sage hover:bg-brand-sage hover:text-brand-milktea transition-all shrink-0`;
+      addWeekBtn.innerHTML = `<i class="ph ph-plus font-bold"></i> 新增週數`;
+      addWeekBtn.onclick = () => {
+        const newW = maxW + 1;
+        pendingFuRecords.push({week: newW, session: 1});
+        selectedFuWeek = newW; selectedFuSession = 1;
+        renderFuSelector(); loadFollowUpForm(newW, 1);
+      };
+      weekContainer.appendChild(addWeekBtn);
+      
+      if (selectedFuWeek) {
+        sessionWrapper.classList.remove('hidden');
+        let sessions = new Set();
+        currentFollowUps.filter(r => parseInt(r.week) === selectedFuWeek).forEach(r => sessions.add(parseInt(r.session)));
+        pendingFuRecords.filter(r => parseInt(r.week) === selectedFuWeek).forEach(r => sessions.add(parseInt(r.session)));
+        let sessionArray = Array.from(sessions).sort((a,b) => a-b);
+        
+        sessionArray.forEach(s => {
+          const isPending = !currentFollowUps.some(r => parseInt(r.week) === selectedFuWeek && parseInt(r.session) === s);
+          const btn = document.createElement('button'); btn.type = 'button';
+          btn.className = `px-4 py-2 rounded-xl font-bold text-sm transition-all border flex items-center gap-1 shrink-0 ${selectedFuSession === s ? 'bg-brand-milktea text-white border-brand-milktea shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-brand-milktea hover:text-brand-milktea'}`;
+          btn.innerText = `第 ${s} 次`;
+          
+          if (isPending) {
+            const crossColor = selectedFuSession === s ? 'text-white hover:text-red-200' : 'text-red-400 hover:text-red-600';
+            btn.innerHTML += ` <span class="ml-1 ${crossColor}" title="移除未儲存草稿" onclick="event.stopPropagation(); removePendingSession(${selectedFuWeek}, ${s})"><i class="ph ph-minus-circle text-lg"></i></span>`;
+          }
+          btn.onclick = () => { loadFollowUpForm(selectedFuWeek, s); };
+          sessionContainer.appendChild(btn);
+        });
+        
+        const maxS = sessionArray.length > 0 ? Math.max(...sessionArray) : 0;
+        const addSessionBtn = document.createElement('button'); addSessionBtn.type = 'button';
+        addSessionBtn.className = `px-3 py-2 rounded-xl font-bold text-sm bg-white text-brand-milktea border border-brand-milktea hover:bg-brand-milktea hover:text-white transition-all shrink-0`;
+        addSessionBtn.innerHTML = `<i class="ph ph-plus font-bold"></i> 新增次數`;
+        addSessionBtn.onclick = () => {
+          const newS = maxS + 1;
+          pendingFuRecords.push({week: selectedFuWeek, session: newS});
+          selectedFuSession = newS;
+          renderFuSelector(); loadFollowUpForm(selectedFuWeek, newS);
+        };
+        sessionContainer.appendChild(addSessionBtn);
+      } else {
+        sessionWrapper.classList.add('hidden');
+      }
+    }
+
+    function removePendingSession(w, s) {
+      pendingFuRecords = pendingFuRecords.filter(r => !(parseInt(r.week) === w && parseInt(r.session) === s));
+      if (selectedFuSession === s) {
+        selectedFuSession = null;
+        document.getElementById('followUpForm').classList.remove('flex'); document.getElementById('followUpForm').classList.add('hidden');
+      }
+      renderFuSelector();
+    }
+
+    function loadFollowUpForm(week, session) {
+      selectedFuWeek = parseInt(week); selectedFuSession = parseInt(session);
+      renderFuSelector(); 
+      
+      const form = document.getElementById('followUpForm');
+      form.classList.remove('hidden'); form.classList.add('flex');
+      
+      const record = currentFollowUps.find(r => parseInt(r.week) === selectedFuWeek && parseInt(r.session) === selectedFuSession);
+      const btn = document.getElementById('submitFollowUpBtn');
+      btn.style.display = 'flex'; btn.disabled = false;
+      document.getElementById('fuSysMsg').classList.add('hidden');
+      
+      document.getElementById('fuClientId').value = currentClientData[0]; 
+      document.getElementById('fuName').value = currentClientData[4]; 
+
+      const now = new Date();
+      const yyyy = now.getFullYear(); const mm = String(now.getMonth() + 1).padStart(2, '0'); const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0'); const min = String(now.getMinutes()).padStart(2, '0'); const ss = String(now.getSeconds()).padStart(2, '0');
+      const defaultDate = `${yyyy}/${mm}/${dd}`; const defaultTime = `${hh}:${min}:${ss}`;
+
+      if (record) {
+        isFollowUpEditMode = true; document.getElementById('fuEditNotice').classList.remove('hidden');
+        btn.innerHTML = '<i class="ph ph-pencil-simple text-xl"></i> <span>更新歷史追蹤紀錄</span>'; btn.classList.remove('btn-sage'); btn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+        
+        document.getElementById('fuDate').value = (record.date && record.date !== '無') ? record.date : defaultDate; 
+        document.getElementById('fuTime').value = (record.time && record.time !== '無') ? record.time : defaultTime; 
+        
+        setSelectValueSafely(document.getElementById('fuNutritionist'), record.nutritionist);
+        document.getElementById('fuHeight').value = record.height || '';
+        document.getElementById('fuWeight').value = record.weight || '';
+        document.getElementById('fuBmi').value = record.bmi || '';
+        document.getElementById('fuBodyFat').value = record.bodyFat || '';
+        document.getElementById('fuSpecialMetrics').value = record.specialMetrics || '';
+        
+        document.getElementById('fuRecord').value = record.record || ''; document.getElementById('fuSuggestions').value = record.suggestions || ''; document.getElementById('fuNotes').value = record.notes || '';
+        document.getElementById('fuPostpone').value = record.postpone || ''; document.getElementById('fuOther').value = record.other || ''; setSelectValueSafely(document.getElementById('fuAddon'), record.addon);
+        document.getElementById('fuNextDate').value = formatDateForInput(record.nextDate); document.getElementById('fuFolderLink').href = record.folderUrl || currentSessionFolderUrl;
+        if (record.nextDate && record.nextDate !== '無') fetchAvailableSlotsFU(record.nextSlot !== '無' ? record.nextSlot : null); else { document.getElementById('fuNextSlot').value = ''; document.getElementById('fuSlotContainer').innerHTML = '<div class="slot-btn booked col-span-2 w-full">目前無預約日期</div>'; }
+      } else {
+        isFollowUpEditMode = false; document.getElementById('fuEditNotice').classList.add('hidden');
+        btn.innerHTML = '<i class="ph ph-check-circle text-xl"></i> <span>儲存追蹤紀錄與排程結案</span>'; btn.classList.add('btn-sage'); btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+        
+        document.getElementById('fuDate').value = defaultDate;
+        document.getElementById('fuTime').value = defaultTime;
+        
+        if (loggedInNutritionist) setSelectValueSafely(document.getElementById('fuNutritionist'), loggedInNutritionist);
+        document.getElementById('fuFolderLink').href = currentSessionFolderUrl; 
+        ['fuHeight', 'fuWeight', 'fuBmi', 'fuBodyFat', 'fuSpecialMetrics', 'fuRecord', 'fuSuggestions', 'fuNotes', 'fuPostpone', 'fuOther', 'fuNextDate', 'fuNextSlot'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('fuAddon').selectedIndex = 0; document.getElementById('fuSlotContainer').innerHTML = '<div class="slot-btn booked col-span-2 w-full">請先於上方選擇日期</div>'; 
+        loadFormDraft('followUpForm', currentClientData[0] + '_w' + selectedFuWeek + '_s' + selectedFuSession);
+      }
+    }
+
+    function saveBasicInfo() {
+      if (!validateSession()) return; 
+      const btn = document.getElementById('saveBasicBtn'); btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin text-lg"></i> 儲存中...';
+      const updatedData = [];
+      
+      for(let i = 0; i < 18; i++) updatedData.push(document.getElementById('basic_col_' + i).value);
+      for(let i = 0; i < 18; i++) currentClientData[i] = updatedData[i]; 
+      
+      const session = JSON.parse(localStorage.getItem('nuheal_session'));
+      const updaterEmail = session ? session.email : '未知';
+      
+      window.google.script.run
+        .withSuccessHandler(res => {
+          if (res.status === 'success') {
+            btn.innerHTML = '<i class="ph ph-check-circle text-xl text-brand-sage"></i> 儲存成功';
+            clearFormDraft('basicInfoForm', currentClientData[0]); 
+            
+            calendarCache = {};
+            fetchCalendarData(true);
+          } else { btn.innerHTML = '<i class="ph ph-warning-circle text-xl text-red-500"></i> 更新失敗'; alert(res.message); }
+          setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="ph ph-floppy-disk text-xl"></i> 儲存基本資料修改'; }, 3000);
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false; btn.innerHTML = '<i class="ph ph-warning-circle text-xl text-red-500"></i> 系統異常儲存失敗';
+          alert('系統/連線異常：' + err.message);
+        })
+        .updateClientBasicInfo(document.getElementById('currentRowIndex').value, updatedData, currentClientData[13], currentClientData[14], updaterEmail);
+    }
+    
+    function fetchAvailableSlots(preselectSlot = null) {
+      const dateVal = document.getElementById('nextDate').value; const container = document.getElementById('slotContainer'); const slotInput = document.getElementById('nextSlot');
+      if (!preselectSlot) slotInput.value = ''; if (!dateVal) return;
+      document.getElementById('loadingText').classList.remove('hidden'); container.innerHTML = '<div class="col-span-2 text-center text-sm text-gray-400 py-4 w-full">載入時段中...</div>';
+      window.google.script.run
+        .withSuccessHandler(bookedSlots => {
+          document.getElementById('loadingText').classList.add('hidden'); container.innerHTML = ''; 
+          ALL_SLOTS.forEach(slot => {
+            const btn = document.createElement('div');
+            if (bookedSlots.includes(slot)) { btn.className = 'slot-btn booked col-span-1 w-full'; btn.innerText = slot + ' (滿)'; if(slot === preselectSlot) slotInput.value = ''; }
+            else { btn.className = 'slot-btn col-span-1 w-full'; btn.innerText = slot; if (slot === preselectSlot) { btn.classList.add('active'); slotInput.value = slot; }
+              btn.onclick = () => { document.querySelectorAll('#slotContainer .slot-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); slotInput.value = slot; saveFormDraft('consultForm', currentClientData[0]); };
+            } container.appendChild(btn);
+          });
+        })
+        .withFailureHandler(err => {
+          document.getElementById('loadingText').classList.add('hidden');
+          container.innerHTML = `<div class="col-span-2 text-center text-sm text-red-500 py-4 w-full">載入異常：${err.message}</div>`;
+        })
+        .getBookedSlots(dateVal, currentClientData[4]);
+    }
+
+    function handleFileUpload(event, isImage, listId) {
+      const files = event.target.files; if (!files.length) return;
+      Array.from(files).forEach(file => {
+        const seq = isImage ? imgSeq++ : fileSeq++; const ext = file.name.split('.').pop(); const divId = 'file_upload_' + Date.now() + '_' + seq;
+        const div = document.createElement('div'); div.id = divId; div.className = "flex justify-between items-center bg-white p-3 rounded-lg text-sm border border-gray-100 w-full";
+        div.innerHTML = `<span class="text-gray-600"><i class="ph ph-spinner ph-spin text-brand-sage"></i> 上傳中...</span>`; document.getElementById(listId).appendChild(div);
+        const reader = new FileReader();
+        reader.onload = e => {
+          window.google.script.run
+            .withSuccessHandler(res => {
+              if(res.status === 'success') div.innerHTML = `<a href="${res.url}" target="_blank" class="text-brand-sage underline font-bold truncate pr-2">${res.fileName}</a><button type="button" onclick="deleteFile('${res.fileId}', '${divId}')" class="text-red-400 p-1 shrink-0"><i class="ph ph-trash text-lg"></i></button>`;
+              else div.innerHTML = `<span class="text-red-500">❌ 失敗: ${res.message}</span>`;
+            })
+            .withFailureHandler(err => {
+              div.innerHTML = `<span class="text-red-500">❌ 系統異常: 上傳失敗</span>`;
+            })
+            .uploadConsultFile(sessionFolderId, sessionBaseFileName, e.target.result.split(',')[1], file.type, ext, isImage, seq);
+        }; reader.readAsDataURL(file);
+      }); event.target.value = ""; 
+    }
+    
+    function deleteFile(id, divId) { 
+      if(confirm("確定刪除此檔案？")) { 
+        document.getElementById(divId).innerHTML = '刪除中...'; 
+        window.google.script.run
+          .withSuccessHandler(res => { if(res.status === 'success') document.getElementById(divId).remove(); })
+          .withFailureHandler(err => { document.getElementById(divId).innerHTML = '<span class="text-red-500">刪除失敗，請重試</span>'; })
+          .deleteConsultFile(id); 
+      } 
+    }
+    
+    function submitConsultation(e) {
+      e.preventDefault(); if (!validateSession()) return; 
+      const nextDate = document.getElementById('nextDate').value; const nextSlot = document.getElementById('nextSlot').value;
+      if (nextDate && !nextSlot) return alert("請選擇『預約時段』。");
+      const btn = document.getElementById('submitConsultBtn'); const msg = document.getElementById('sysMsg');
+      btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin text-xl"></i> 儲存中...';
+      const obj = Object.fromEntries(new FormData(document.getElementById('consultForm')).entries()); obj.isProxy = document.getElementById('isProxy').checked;
+      const session = JSON.parse(localStorage.getItem('nuheal_session')); const updaterEmail = session ? session.email : '未知';
+      
+      window.google.script.run
+        .withSuccessHandler(res => {
+          msg.classList.remove('hidden'); msg.classList.add('flex');
+          if(res.status === 'success') { 
+            msg.className = 'text-center mt-4 text-sm p-4 rounded-lg bg-green-50 text-brand-sage font-bold flex flex-col w-full'; msg.innerHTML = `儲存成功！${res.message}`; btn.style.display = 'none'; clearFormDraft('consultForm', currentClientData[0]); 
+            
+            calendarCache = {};
+            fetchCalendarData(true);
+          }
+          else { msg.className = 'text-center mt-4 text-sm p-4 rounded-lg bg-red-50 text-red-500 font-bold flex flex-col w-full'; msg.innerHTML = `儲存失敗：${res.message}`; btn.disabled = false; btn.innerHTML = '重新儲存'; }
+        })
+        .withFailureHandler(err => {
+          msg.classList.remove('hidden'); msg.classList.add('flex');
+          msg.className = 'text-center mt-4 text-sm p-4 rounded-lg bg-red-50 text-red-500 font-bold flex flex-col w-full';
+          msg.innerHTML = `系統/連線異常儲存失敗：${err.message}`;
+          btn.disabled = false; btn.innerHTML = '重新儲存';
+        })
+        .submitConsultationData(document.getElementById('currentRowIndex').value, obj, currentClientData, updaterEmail);
+    }
+
+    function fetchAvailableSlotsFU(preselectSlot = null) {
+      const dateVal = document.getElementById('fuNextDate').value; const container = document.getElementById('fuSlotContainer'); const slotInput = document.getElementById('fuNextSlot');
+      if (!preselectSlot) slotInput.value = ''; if (!dateVal) return;
+      document.getElementById('fuLoadingText').classList.remove('hidden'); container.innerHTML = '<div class="col-span-2 text-center text-sm text-gray-400 py-4 w-full">載入時段中...</div>';
+      window.google.script.run
+        .withSuccessHandler(bookedSlots => {
+          document.getElementById('fuLoadingText').classList.add('hidden'); container.innerHTML = ''; 
+          ALL_SLOTS.forEach(slot => {
+            const btn = document.createElement('div');
+            if (bookedSlots.includes(slot)) { btn.className = 'slot-btn booked col-span-1 w-full'; btn.innerText = slot + ' (滿)'; if(slot === preselectSlot) slotInput.value = ''; }
+            else { btn.className = 'slot-btn col-span-1 w-full'; btn.innerText = slot; if (slot === preselectSlot) { btn.classList.add('active'); slotInput.value = slot; }
+              btn.onclick = () => { document.querySelectorAll('#fuSlotContainer .slot-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); slotInput.value = slot; handleFUDraftSave(); };
+            } container.appendChild(btn);
+          });
+        })
+        .withFailureHandler(err => {
+          document.getElementById('fuLoadingText').classList.add('hidden');
+          container.innerHTML = `<div class="col-span-2 text-center text-sm text-red-500 py-4 w-full">載入異常：${err.message}</div>`;
+        })
+        .getBookedSlots(dateVal, currentClientData[4]);
+    }
+
+    function submitFollowUp(e) {
+      e.preventDefault(); if (!validateSession()) return; 
+      const nextDate = document.getElementById('fuNextDate').value; const nextSlot = document.getElementById('fuNextSlot').value;
+      if (nextDate && !nextSlot) return alert("請務必選擇一個『預約時段』。");
+      const btn = document.getElementById('submitFollowUpBtn'); const msg = document.getElementById('fuSysMsg');
+      btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner ph-spin text-xl"></i> <span>處理中...</span>';
+      const session = JSON.parse(localStorage.getItem('nuheal_session')); const updaterEmail = session ? session.email : '未知';
+      const obj = { isEdit: isFollowUpEditMode, clientId: document.getElementById('fuClientId').value, clientName: document.getElementById('fuName').value, week: selectedFuWeek, session: selectedFuSession, date: document.getElementById('fuDate').value, time: document.getElementById('fuTime').value, height: document.getElementById('fuHeight').value, weight: document.getElementById('fuWeight').value, bmi: document.getElementById('fuBmi').value, bodyFat: document.getElementById('fuBodyFat').value, specialMetrics: document.getElementById('fuSpecialMetrics').value, record: document.getElementById('fuRecord').value, suggestions: document.getElementById('fuSuggestions').value, notes: document.getElementById('fuNotes').value, addon: document.getElementById('fuAddon').value, postpone: document.getElementById('fuPostpone').value, other: document.getElementById('fuOther').value, folderUrl: currentSessionFolderUrl, nutritionist: document.getElementById('fuNutritionist').value, nextDate: nextDate, nextSlot: nextSlot, clientPhone: currentClientData[7], clientLine: currentClientData[8], clientEmail: currentClientData[3], updaterEmail: updaterEmail };
+      
+      window.google.script.run
+        .withSuccessHandler(res => {
+          msg.classList.remove('hidden'); msg.classList.add('flex');
+          if (res.status === 'success') { 
+            msg.className = 'text-center mt-4 text-sm font-bold p-4 rounded-lg bg-green-50 text-brand-sage flex flex-col w-full'; msg.innerHTML = res.message; btn.style.display = 'none'; 
+            clearFormDraft('followUpForm', `${currentClientData[0]}_w${selectedFuWeek}_s${selectedFuSession}`); 
+            window.google.script.run.withSuccessHandler(r => { 
+              if(r.status==='success') {
+                currentFollowUps = r.data; 
+                pendingFuRecords = pendingFuRecords.filter(p => !(parseInt(p.week) === parseInt(obj.week) && parseInt(p.session) === parseInt(obj.session)));
+                renderFuSelector(); loadFollowUpForm(obj.week, obj.session);
+                
+                calendarCache = {};
+                fetchCalendarData(true);
+              } 
+            }).getFollowUpRecords(obj.clientId); 
+          } else { msg.className = 'text-center mt-4 text-sm p-4 rounded-lg bg-red-50 text-red-500 font-bold flex flex-col w-full'; msg.innerHTML = `失敗：${res.message}`; btn.disabled = false; btn.innerHTML = '重新儲存'; }
+        })
+        .withFailureHandler(err => {
+          msg.classList.remove('hidden'); msg.classList.add('flex');
+          msg.className = 'text-center mt-4 text-sm p-4 rounded-lg bg-red-50 text-red-500 font-bold flex flex-col w-full';
+          msg.innerHTML = `系統/連線異常儲存失敗：${err.message}`;
+          btn.disabled = false; btn.innerHTML = '重新儲存';
+        })
+        .submitFollowUpConsultation(obj);
+    }
+  </script>
+</body>
+</html>
