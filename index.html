@@ -523,23 +523,13 @@
           div.innerHTML += `<input type="text" id="basic_col_${idx}" value="${val}" readonly class="form-input bg-gray-100 text-sm">`;
         } else if (idx === 21) {
           const formattedDate = formatDateForInput(val);
-          div.innerHTML += `<input type="date" id="basic_col_${idx}" value="${formattedDate}" class="form-input text-sm w-full" onchange="if(currentClientData[0]) saveFormDraft('basicInfoForm', currentClientData[0])">`;
+          div.innerHTML += `<input type="date" id="basic_col_${idx}" value="${formattedDate}" class="form-input text-sm w-full" onchange="fetchAvailableSlotsBasic(); if(currentClientData[0]) saveFormDraft('basicInfoForm', currentClientData[0])">`;
         } else if (idx === 22) {
           div.innerHTML += `<input type="hidden" id="basic_col_${idx}" value="${val}">`;
+          div.innerHTML += `<div class="flex justify-between items-end mt-1"><label class="text-xs text-gray-500">重新選擇時段</label><span id="basicLoadingText" class="text-[10px] text-brand-sage hidden animate-pulse">查詢中...</span></div>`;
           const slotContainer = document.createElement('div');
+          slotContainer.id = 'basicSlotContainer';
           slotContainer.className = 'grid grid-cols-3 gap-2 mt-1 w-full';
-          ALL_SLOTS.forEach(slot => {
-            const btn = document.createElement('div');
-            btn.className = `slot-btn text-xs py-2 px-1 ${val === slot ? 'active' : ''}`;
-            btn.innerText = slot;
-            btn.onclick = () => {
-              Array.from(slotContainer.children).forEach(b => b.classList.remove('active'));
-              btn.classList.add('active');
-              document.getElementById(`basic_col_${idx}`).value = slot;
-              saveFormDraft('basicInfoForm', currentClientData[0]);
-            };
-            slotContainer.appendChild(btn);
-          });
           div.appendChild(slotContainer);
         } else if (multiLineIndices.includes(idx)) {
           div.innerHTML += `<textarea id="basic_col_${idx}" class="form-input text-sm w-full" rows="3" style="min-height: 80px; height: auto;">${val}</textarea>`;
@@ -573,6 +563,9 @@
       for(const k in map) { const el=document.querySelector(`#consultForm [name="${k}"]`); const v=currentClientData[map[k]]; if(el&&v&&v!=='無'){ if(k==='nextDate')el.value=formatDateForInput(v); else if(el.tagName==='SELECT')setSelectValueSafely(el,v); else el.value=v; } }
       if(currentClientData[29]==='是') document.getElementById('isProxy').checked=true;
       if(loadFormDraft('consultForm', currentClientData[0])) document.getElementById('draftNotice').classList.remove('hidden');
+      
+      // ✅ 觸發 Tab 1 與 Tab 2 的時段查詢封印防呆
+      if(document.getElementById('basic_col_21').value) fetchAvailableSlotsBasic(currentClientData[22]);
       if(document.getElementById('nextDate').value) fetchAvailableSlots(document.getElementById('nextSlot').value || currentClientData[44]);
 
       document.getElementById('fuWeekContainer').innerHTML='<span class="text-xs text-brand-sage"><i class="ph ph-spinner ph-spin"></i> 載入中...</span>';
@@ -614,7 +607,8 @@
         document.getElementById('fuDate').value=rec.date||`${y}/${m}/${d}`; document.getElementById('fuTime').value=rec.time||t;
         ['Nutritionist','Height','Weight','Bmi','BodyFat','SpecialMetrics','Record','Suggestions','Notes','Postpone','Other','FolderLink'].forEach(k=> { const el=document.getElementById('fu'+k); if(el) el.value=rec[k.charAt(0).toLowerCase()+k.slice(1)]||''; });
         setSelectValueSafely(document.getElementById('fuNutritionist'), rec.nutritionist); setSelectValueSafely(document.getElementById('fuAddon'), rec.addon);
-        document.getElementById('fuNextDate').value=formatDateForInput(rec.nextDate); if(rec.nextDate) fetchAvailableSlotsFU(rec.nextSlot); else document.getElementById('fuSlotContainer').innerHTML='';
+        document.getElementById('fuNextDate').value=formatDateForInput(rec.nextDate); 
+        if(rec.nextDate) fetchAvailableSlotsFU(rec.nextSlot); else document.getElementById('fuSlotContainer').innerHTML='';
       } else {
         isFollowUpEditMode=false; document.getElementById('fuEditNotice').classList.add('hidden'); btn.innerHTML='<i class="ph ph-check-circle"></i> 儲存紀錄與排程';
         document.getElementById('fuDate').value=`${y}/${m}/${d}`; document.getElementById('fuTime').value=t;
@@ -635,15 +629,75 @@
       window.google.script.run.withSuccessHandler(r=>{ if(r.status==='success'){ b.innerHTML='儲存成功'; for(let i=0;i<=25;i++)currentClientData[i]=arr[i]; calendarCache={};fetchCalendarData(true); }else{alert(r.message);b.innerHTML='更新失敗';} setTimeout(()=>b.disabled=false,2000); }).updateClientBasicInfo(document.getElementById('currentRowIndex').value, arr, currentClientData[21], currentClientData[22], em);
     }
 
+    // ✅ 左側 (Tab 1 基本資料) 專屬動態時段查詢
+    function fetchAvailableSlotsBasic(p=null) {
+      const dv=document.getElementById('basic_col_21').value, c=document.getElementById('basicSlotContainer'), inp=document.getElementById('basic_col_22');
+      if(!p) p=inp.value; 
+      if(!dv) { c.innerHTML='<div class="slot-btn booked col-span-3 w-full">請選擇日期</div>'; return; }
+      const lText = document.getElementById('basicLoadingText');
+      if(lText) lText.classList.remove('hidden');
+
+      window.google.script.run.withSuccessHandler(bSlots=>{
+        if(lText) lText.classList.add('hidden');
+        c.innerHTML='';
+        const normSlots = bSlots.map(s => { let str = String(s).trim(); return (str.length === 4 && str.charAt(1) === ':') ? '0' + str : str; });
+        
+        ALL_SLOTS.forEach(s=>{
+          const btn=document.createElement('div');
+          if(normSlots.includes(s)){
+            btn.className='slot-btn booked text-xs py-2 px-1';
+            btn.innerText=s+'(滿)';
+            if(s===inp.value) inp.value='';
+          }else{
+            btn.className='slot-btn text-xs py-2 px-1';
+            btn.innerText=s;
+            if(s===p){ btn.classList.add('active'); inp.value=s; }
+            btn.onclick=()=>{
+              document.querySelectorAll('#basicSlotContainer .slot-btn').forEach(b=>b.classList.remove('active'));
+              btn.classList.add('active'); inp.value=s; saveFormDraft('basicInfoForm',currentClientData[0]);
+            };
+          }
+          c.appendChild(btn);
+        });
+      }).getBookedSlots(dv, currentClientData[4]);
+    }
+
     function fetchAvailableSlots(p=null) {
       const dv=document.getElementById('nextDate').value, c=document.getElementById('slotContainer'), inp=document.getElementById('nextSlot');
       if(!p)inp.value=''; if(!dv)return; document.getElementById('loadingText').classList.remove('hidden');
-      window.google.script.run.withSuccessHandler(bSlots=>{ document.getElementById('loadingText').classList.add('hidden'); c.innerHTML=''; ALL_SLOTS.forEach(s=>{ const btn=document.createElement('div'); if(bSlots.includes(s)){btn.className='slot-btn booked';btn.innerText=s+'(滿)';if(s===p)inp.value='';}else{btn.className='slot-btn';btn.innerText=s;if(s===p){btn.classList.add('active');inp.value=s;}btn.onclick=()=>{document.querySelectorAll('#slotContainer .slot-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');inp.value=s;saveFormDraft('consultForm',currentClientData[0]);}}c.appendChild(btn); }); }).getBookedSlots(dv, currentClientData[4]);
+      window.google.script.run.withSuccessHandler(bSlots=>{ 
+        document.getElementById('loadingText').classList.add('hidden'); c.innerHTML=''; 
+        const normSlots = bSlots.map(s => { let str = String(s).trim(); return (str.length === 4 && str.charAt(1) === ':') ? '0' + str : str; });
+        ALL_SLOTS.forEach(s=>{ 
+          const btn=document.createElement('div'); 
+          if(normSlots.includes(s)){
+            btn.className='slot-btn booked';btn.innerText=s+'(滿)';if(s===p)inp.value='';
+          }else{
+            btn.className='slot-btn';btn.innerText=s;if(s===p){btn.classList.add('active');inp.value=s;}
+            btn.onclick=()=>{document.querySelectorAll('#slotContainer .slot-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');inp.value=s;saveFormDraft('consultForm',currentClientData[0]);}
+          }
+          c.appendChild(btn); 
+        }); 
+      }).getBookedSlots(dv, currentClientData[4]);
     }
+
     function fetchAvailableSlotsFU(p=null) {
       const dv=document.getElementById('fuNextDate').value, c=document.getElementById('fuSlotContainer'), inp=document.getElementById('fuNextSlot');
       if(!p)inp.value=''; if(!dv)return; document.getElementById('fuLoadingText').classList.remove('hidden');
-      window.google.script.run.withSuccessHandler(bSlots=>{ document.getElementById('fuLoadingText').classList.add('hidden'); c.innerHTML=''; ALL_SLOTS.forEach(s=>{ const btn=document.createElement('div'); if(bSlots.includes(s)){btn.className='slot-btn booked';btn.innerText=s+'(滿)';if(s===p)inp.value='';}else{btn.className='slot-btn';btn.innerText=s;if(s===p){btn.classList.add('active');inp.value=s;}btn.onclick=()=>{document.querySelectorAll('#fuSlotContainer .slot-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');inp.value=s;handleFUDraftSave();}}c.appendChild(btn); }); }).getBookedSlots(dv, currentClientData[4]);
+      window.google.script.run.withSuccessHandler(bSlots=>{ 
+        document.getElementById('fuLoadingText').classList.add('hidden'); c.innerHTML=''; 
+        const normSlots = bSlots.map(s => { let str = String(s).trim(); return (str.length === 4 && str.charAt(1) === ':') ? '0' + str : str; });
+        ALL_SLOTS.forEach(s=>{ 
+          const btn=document.createElement('div'); 
+          if(normSlots.includes(s)){
+            btn.className='slot-btn booked';btn.innerText=s+'(滿)';if(s===p)inp.value='';
+          }else{
+            btn.className='slot-btn';btn.innerText=s;if(s===p){btn.classList.add('active');inp.value=s;}
+            btn.onclick=()=>{document.querySelectorAll('#fuSlotContainer .slot-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');inp.value=s;handleFUDraftSave();}
+          }
+          c.appendChild(btn); 
+        }); 
+      }).getBookedSlots(dv, currentClientData[4]);
     }
 
     function handleFileUpload(e, isI, lId) {
